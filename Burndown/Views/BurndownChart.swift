@@ -35,6 +35,25 @@ struct BurndownChart: View {
         return start < end ? start ... end : start ... start.addingTimeInterval(60)
     }
 
+    /// Day names across a week, clock times across five hours.
+    ///
+    /// A seven-day chart labelled `12:00 AM` twice says nothing about where in the week you are —
+    /// the axis has to be read at the scale of the window it's describing.
+    private var xAxisFormat: Date.FormatStyle {
+        switch self.window.kind {
+        case .session: .dateTime.hour().minute()
+        case .weekly: .dateTime.weekday(.abbreviated)
+        }
+    }
+
+    /// Ticks on day boundaries for the weekly window, so no two labels can name the same day.
+    private var xAxisValues: AxisMarkValues {
+        switch self.window.kind {
+        case .session: .automatic(desiredCount: 3)
+        case .weekly: .stride(by: .day, count: 2)
+        }
+    }
+
     var body: some View {
         Chart {
             ForEach(self.observed) { point in
@@ -44,7 +63,7 @@ struct BurndownChart: View {
                 )
                 .foregroundStyle(
                     .linearGradient(
-                        colors: [self.provider.tint.opacity(0.35), self.provider.tint.opacity(0.02)],
+                        colors: [self.provider.tint.opacity(0.5), self.provider.tint.opacity(0.1)],
                         startPoint: .top,
                         endPoint: .bottom,
                     ),
@@ -78,18 +97,25 @@ struct BurndownChart: View {
         .chartYAxis {
             AxisMarks(values: [0.0, 50.0, 100.0]) { mark in
                 AxisGridLine().foregroundStyle(.quaternary)
-                AxisValueLabel {
+                // Anchored explicitly because the 0 and 100 marks sit on the plot's own edges.
+                // Left to itself Charts interpolates an anchor there to avoid clipping, then logs a
+                // complaint that the value it computed isn't one of its named constants.
+                AxisValueLabel(anchor: .leading) {
                     Text(Format.percent(mark.as(Double.self) ?? 0))
                         .font(.system(size: 8))
-                        .foregroundStyle(.tertiary)
+                        .foregroundStyle(.secondary)
                 }
             }
         }
         .chartXAxis {
-            AxisMarks(values: .automatic(desiredCount: 3)) {
-                AxisValueLabel(format: .dateTime.hour().minute())
-                    .font(.system(size: 8))
-                    .foregroundStyle(.tertiary)
+            AxisMarks(values: self.xAxisValues) { mark in
+                // Same reason: day-boundary ticks don't line up with a domain that starts mid-day,
+                // so the first label sits partway into the leading edge.
+                AxisValueLabel(anchor: .top) {
+                    Text(mark.as(Date.self) ?? .now, format: self.xAxisFormat)
+                        .font(.system(size: 8))
+                        .foregroundStyle(.secondary)
+                }
             }
         }
         .frame(height: 76)

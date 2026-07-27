@@ -175,19 +175,27 @@ private struct MenuBarContent: View {
     /// Two lines have to share the height a single line gets all to itself.
     private var fontSize: CGFloat { self.isStacked ? 9 : 12 }
 
+    /// A grid rather than stacked `HStack`s so the two columns line up independently.
+    ///
+    /// Rows carry different providers and different remaining times, so their text is never the
+    /// same width. Left-aligning the whole row leaves the right edges ragged; right-aligning it
+    /// would just move the raggedness to the icons. Giving each column its own alignment pins the
+    /// icons to the left and the text to the right, so both edges are flush.
     var body: some View {
-        VStack(alignment: .leading, spacing: self.isStacked ? 1 : 0) {
+        Grid(horizontalSpacing: 2.5, verticalSpacing: self.isStacked ? 1 : 0) {
             ForEach(self.rows) { row in
-                HStack(spacing: 2.5) {
+                GridRow {
                     Image(systemName: row.symbol)
                         .font(.system(size: self.fontSize - 1, weight: .semibold))
+                        .foregroundStyle(row.color)
                     if !row.text.isEmpty {
                         Text(row.text)
                             .font(.system(size: self.fontSize, weight: .medium))
                             .monospacedDigit()
+                            .foregroundStyle(row.color)
+                            .gridColumnAlignment(.trailing)
                     }
                 }
-                .foregroundStyle(row.color)
             }
         }
         .frame(height: self.height, alignment: .center)
