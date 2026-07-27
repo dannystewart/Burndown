@@ -24,7 +24,7 @@ struct SettingsView: View {
                     }
             }
 
-            Section("Menu Bar") {
+            Section {
                 Picker("Layout", selection: Bindable(self.preferences).menuBarLayout) {
                     ForEach(MenuBarLayout.allCases) { layout in
                         Text(layout.displayName).tag(layout)
@@ -48,6 +48,10 @@ struct SettingsView: View {
                         Text(mode.displayName).tag(mode)
                     }
                 }
+            } header: {
+                Text("Menu Bar")
+            } footer: {
+                Text("Burndown will display the soonest limit available per provider.")
             }
 
             Section("Providers") {
