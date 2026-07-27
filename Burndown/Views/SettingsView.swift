@@ -1,3 +1,4 @@
+import PolyKit
 import SwiftUI
 
 /// The settings window, opened from the popover's gear.
@@ -62,9 +63,15 @@ struct SettingsView: View {
                     }
                 }
             }
+
+            Section {
+                PolyAboutView()
+            } header: {
+                Text("About")
+            }
         }
         .formStyle(.grouped)
-        .frame(width: 440, height: 480)
+        .frame(width: 440, height: 470)
         .fixedSize(horizontal: false, vertical: true)
     }
 
