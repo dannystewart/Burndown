@@ -34,6 +34,6 @@ Packages/
 *.xcuserdata/
 *.xcworkspace/xcuserdata/
 **/UserInterfaceState.xcuserstate
-Config/*.xcconfig
+BuildNumber.xcconfig
 DerivedData/
 **/xcuserdata

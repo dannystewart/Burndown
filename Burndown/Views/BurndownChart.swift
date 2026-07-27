@@ -1,23 +1,18 @@
-//
-//  BurndownChart.swift
-//  Burndown
-//
-
 import Charts
 import SwiftUI
 
 /// Remaining quota over the life of the current window, with a dashed projection to the reset.
 struct BurndownChart: View {
-    let provider: Provider
-    let window: QuotaWindow
-    let samples: [UsageSample]
-    let analysis: BurnAnalysis
-
     private struct Point: Identifiable {
         let id: Int
         let date: Date
         let remaining: Double
     }
+
+    let provider: Provider
+    let window: QuotaWindow
+    let samples: [UsageSample]
+    let analysis: BurnAnalysis
 
     /// Observed history, extended to the present so the line meets the projection.
     private var observed: [Point] {

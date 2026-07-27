@@ -1,8 +1,3 @@
-//
-//  UsageHTTP.swift
-//  Burndown
-//
-
 import Foundation
 import PolyKit
 
@@ -14,6 +9,20 @@ nonisolated enum UsageHTTP {
         config.timeoutIntervalForRequest = 20
         config.requestCachePolicy = .reloadIgnoringLocalCacheData
         return URLSession(configuration: config)
+    }()
+
+    private static let decoder: JSONDecoder = {
+        let decoder = JSONDecoder()
+        decoder.dateDecodingStrategy = .custom { decoder in
+            let text = try decoder.singleValueContainer().decode(String.self)
+            guard let date = parseTimestamp(text) else {
+                throw DecodingError.dataCorrupted(
+                    .init(codingPath: decoder.codingPath, debugDescription: "Bad date: \(text)"),
+                )
+            }
+            return date
+        }
+        return decoder
     }()
 
     /// Performs a request and decodes it, translating transport and status codes into `UsageError`.
@@ -37,16 +46,19 @@ nonisolated enum UsageHTTP {
         }
 
         switch http.statusCode {
-            case 200 ..< 300:
-                break
-            case 401, 403:
-                log.warning("\(provider.displayName) rejected the stored token.", group: .network)
-                throw .credentialsExpired
-            case 429:
-                log.warning("\(provider.displayName) is throttling usage requests.", group: .network)
-                throw .rateLimited
-            default:
-                throw .network("HTTP \(http.statusCode)")
+        case 200 ..< 300:
+            break
+
+        case 401, 403:
+            log.warning("\(provider.displayName) rejected the stored token.", group: .network)
+            throw .credentialsExpired
+
+        case 429:
+            log.warning("\(provider.displayName) is throttling usage requests.", group: .network)
+            throw .rateLimited
+
+        default:
+            throw .network("HTTP \(http.statusCode)")
         }
 
         do {
@@ -56,20 +68,6 @@ nonisolated enum UsageHTTP {
             throw .malformedResponse("Unexpected response format")
         }
     }
-
-    private static let decoder: JSONDecoder = {
-        let decoder = JSONDecoder()
-        decoder.dateDecodingStrategy = .custom { decoder in
-            let text = try decoder.singleValueContainer().decode(String.self)
-            guard let date = parseTimestamp(text) else {
-                throw DecodingError.dataCorrupted(
-                    .init(codingPath: decoder.codingPath, debugDescription: "Bad date: \(text)"),
-                )
-            }
-            return date
-        }
-        return decoder
-    }()
 
     /// Parses an ISO-8601 timestamp, tolerating more precision than Foundation accepts.
     ///
@@ -85,8 +83,10 @@ nonisolated enum UsageHTTP {
         if let date = formatter.date(from: text) { return date }
 
         formatter.formatOptions = [.withInternetDateTime]
-        if let dot = text.firstIndex(of: "."),
-           let fractionEnd = text[dot...].firstIndex(where: { $0 == "+" || $0 == "-" || $0 == "Z" }) {
+        if
+            let dot = text.firstIndex(of: "."),
+            let fractionEnd = text[dot...].firstIndex(where: { $0 == "+" || $0 == "-" || $0 == "Z" })
+        {
             return formatter.date(from: text.replacingCharacters(in: dot ..< fractionEnd, with: ""))
         }
         return formatter.date(from: text)

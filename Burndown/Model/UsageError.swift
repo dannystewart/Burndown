@@ -1,8 +1,3 @@
-//
-//  UsageError.swift
-//  Burndown
-//
-
 import Foundation
 
 /// Why a provider's usage couldn't be read.
@@ -28,26 +23,26 @@ nonisolated enum UsageError: Error, Sendable, Equatable {
     /// poll or a closed laptop lid is no reason to hide the quota.
     var isTransient: Bool {
         switch self {
-            case .rateLimited, .network, .malformedResponse: true
-            case .notSignedIn, .credentialsExpired, .credentialsUnreadable: false
+        case .rateLimited, .network, .malformedResponse: true
+        case .notSignedIn, .credentialsExpired, .credentialsUnreadable: false
         }
     }
 
     /// A short explanation suitable for showing in the popover.
     var message: String {
         switch self {
-            case .notSignedIn:
-                "Not signed in"
-            case .credentialsExpired:
-                "Sign-in expired"
-            case let .credentialsUnreadable(detail):
-                detail
-            case .rateLimited:
-                "Throttled — backing off"
-            case let .network(detail):
-                detail
-            case let .malformedResponse(detail):
-                detail
+        case .notSignedIn:
+            "Not signed in"
+        case .credentialsExpired:
+            "Sign-in expired"
+        case let .credentialsUnreadable(detail):
+            detail
+        case .rateLimited:
+            "Throttled — backing off"
+        case let .network(detail):
+            detail
+        case let .malformedResponse(detail):
+            detail
         }
     }
 
@@ -58,13 +53,14 @@ nonisolated enum UsageError: Error, Sendable, Equatable {
     /// happens in the CLI that owns the credentials.
     func recoverySuggestion(for provider: Provider) -> String? {
         switch self {
-            case .notSignedIn, .credentialsExpired:
-                switch provider {
-                    case .claude: "Run `claude` and sign in"
-                    case .codex: "Run `codex login`"
-                }
-            case .credentialsUnreadable, .network, .malformedResponse, .rateLimited:
-                nil
+        case .notSignedIn, .credentialsExpired:
+            switch provider {
+            case .claude: "Run `claude` and sign in"
+            case .codex: "Run `codex login`"
+            }
+
+        case .credentialsUnreadable, .network, .malformedResponse, .rateLimited:
+            nil
         }
     }
 }

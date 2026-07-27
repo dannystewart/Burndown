@@ -1,8 +1,3 @@
-//
-//  UsageMonitor.swift
-//  Burndown
-//
-
 import Foundation
 import PolyKit
 
@@ -25,20 +20,61 @@ final class UsageMonitor {
 
     private(set) var claude: ProviderState = .loading
     private(set) var codex: ProviderState = .loading
-    private(set) var lastUpdated: Date?
+    private(set) var lastUpdated: Date? = nil
     private(set) var isRefreshing: Bool = false
 
     let store: SampleStore = .init()
 
-    private var pollTask: Task<Void, Never>?
-
     /// Multiplier applied to the poll interval while a provider is throttling us.
     private(set) var backoff: Int = 1
+
+    private var pollTask: Task<Void, Never>? = nil
+
+    /// Providers that are actually set up on this machine.
+    ///
+    /// A provider whose CLI was never signed in here isn't a failure worth reporting — it's simply
+    /// absent, and showing an error card for it would be noise on a machine that only ever uses one
+    /// of the two.
+    var visibleProviders: [Provider] {
+        Provider.allCases.filter { self.state(for: $0).error != .notSignedIn }
+    }
+
+    var missingProviders: [Provider] {
+        Provider.allCases.filter { self.state(for: $0).error == .notSignedIn }
+    }
+
+    /// The window closest to running out, across everything we can currently see.
+    ///
+    /// This is what the menu bar shows, so it should be whichever number would bite first.
+    var tightestWindow: (provider: Provider, window: QuotaWindow)? {
+        Provider.allCases
+            .compactMap { provider in self.tightestWindow(for: provider).map { (provider: provider, window: $0) } }
+            .min { $0.window.remainingPercent < $1.window.remainingPercent }
+    }
 
     /// Polling starts with the app, not with the popover: history has to accumulate whether or not
     /// anyone is looking at it.
     init() {
         self.start()
+    }
+
+    /// Keeps the last good reading when a failure is only temporary.
+    private static func merging(_ new: ProviderState, over previous: ProviderState) -> ProviderState {
+        guard case let .failed(error) = new, error.isTransient, previous.snapshot != nil else {
+            return new
+        }
+        return previous
+    }
+
+    private nonisolated static func load(
+        _ fetch: () async throws(UsageError) -> UsageSnapshot,
+    ) async -> ProviderState {
+        do {
+            return try await .loaded(fetch())
+        } catch {
+            log.warning("Usage fetch failed: \(error.message)", group: .network)
+            return .failed(error)
+        }
     }
 
     /// Begins polling, refreshing immediately and then on a fixed interval.
@@ -93,56 +129,15 @@ final class UsageMonitor {
         await self.refresh()
     }
 
-    /// Keeps the last good reading when a failure is only temporary.
-    private static func merging(_ new: ProviderState, over previous: ProviderState) -> ProviderState {
-        guard case let .failed(error) = new, error.isTransient, previous.snapshot != nil else {
-            return new
-        }
-        return previous
-    }
-
     func state(for provider: Provider) -> ProviderState {
         switch provider {
-            case .claude: self.claude
-            case .codex: self.codex
+        case .claude: self.claude
+        case .codex: self.codex
         }
-    }
-
-    /// Providers that are actually set up on this machine.
-    ///
-    /// A provider whose CLI was never signed in here isn't a failure worth reporting — it's simply
-    /// absent, and showing an error card for it would be noise on a machine that only ever uses one
-    /// of the two.
-    var visibleProviders: [Provider] {
-        Provider.allCases.filter { self.state(for: $0).error != .notSignedIn }
-    }
-
-    var missingProviders: [Provider] {
-        Provider.allCases.filter { self.state(for: $0).error == .notSignedIn }
-    }
-
-    /// The window closest to running out, across everything we can currently see.
-    ///
-    /// This is what the menu bar shows, so it should be whichever number would bite first.
-    var tightestWindow: (provider: Provider, window: QuotaWindow)? {
-        Provider.allCases
-            .compactMap { provider in self.tightestWindow(for: provider).map { (provider: provider, window: $0) } }
-            .min { $0.window.remainingPercent < $1.window.remainingPercent }
     }
 
     /// The window closest to running out for one provider.
     func tightestWindow(for provider: Provider) -> QuotaWindow? {
         self.state(for: provider).snapshot?.windows.min { $0.remainingPercent < $1.remainingPercent }
-    }
-
-    private nonisolated static func load(
-        _ fetch: () async throws(UsageError) -> UsageSnapshot,
-    ) async -> ProviderState {
-        do {
-            return .loaded(try await fetch())
-        } catch {
-            log.warning("Usage fetch failed: \(error.message)", group: .network)
-            return .failed(error)
-        }
     }
 }

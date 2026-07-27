@@ -1,8 +1,3 @@
-//
-//  LoginItem.swift
-//  Burndown
-//
-
 import PolyKit
 import ServiceManagement
 

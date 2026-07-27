@@ -1,9 +1,6 @@
-//
-//  UsageSnapshot.swift
-//  Burndown
-//
-
 import Foundation
+
+// MARK: - UsageSnapshot
 
 /// One provider's quota state at a single moment.
 ///
@@ -20,6 +17,8 @@ nonisolated struct UsageSnapshot: Codable, Sendable, Hashable {
         self.windows.first { $0.kind == kind }
     }
 }
+
+// MARK: - ProviderState
 
 /// The result of the most recent attempt to read a provider.
 nonisolated enum ProviderState: Sendable {

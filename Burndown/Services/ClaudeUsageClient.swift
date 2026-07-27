@@ -1,12 +1,36 @@
-//
-//  ClaudeUsageClient.swift
-//  Burndown
-//
-
 import Foundation
 
 /// Reads Claude subscription quota from the OAuth usage endpoint Claude Code itself uses.
 nonisolated enum ClaudeUsageClient {
+    private struct Response: Decodable {
+        struct Window: Decodable {
+            private enum CodingKeys: String, CodingKey {
+                case utilization
+                case resetsAt = "resets_at"
+            }
+
+            let utilization: Double
+            let resetsAt: Date
+
+            func window(kind: QuotaWindowKind, duration: TimeInterval) -> QuotaWindow {
+                QuotaWindow(
+                    kind: kind,
+                    usedPercent: self.utilization.clamped(to: 0 ... 100),
+                    resetsAt: self.resetsAt,
+                    duration: duration,
+                )
+            }
+        }
+
+        private enum CodingKeys: String, CodingKey {
+            case fiveHour = "five_hour"
+            case sevenDay = "seven_day"
+        }
+
+        let fiveHour: Window?
+        let sevenDay: Window?
+    }
+
     private static let endpoint: URL = .init(string: "https://api.anthropic.com/api/oauth/usage")!
 
     static func fetch() async throws(UsageError) -> UsageSnapshot {
@@ -30,34 +54,5 @@ nonisolated enum ClaudeUsageClient {
             windows: windows,
             plan: credentials.subscriptionType,
         )
-    }
-
-    private struct Response: Decodable {
-        struct Window: Decodable {
-            let utilization: Double
-            let resetsAt: Date
-
-            func window(kind: QuotaWindowKind, duration: TimeInterval) -> QuotaWindow {
-                QuotaWindow(
-                    kind: kind,
-                    usedPercent: self.utilization.clamped(to: 0 ... 100),
-                    resetsAt: self.resetsAt,
-                    duration: duration,
-                )
-            }
-
-            private enum CodingKeys: String, CodingKey {
-                case utilization
-                case resetsAt = "resets_at"
-            }
-        }
-
-        let fiveHour: Window?
-        let sevenDay: Window?
-
-        private enum CodingKeys: String, CodingKey {
-            case fiveHour = "five_hour"
-            case sevenDay = "seven_day"
-        }
     }
 }

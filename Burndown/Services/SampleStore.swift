@@ -1,10 +1,7 @@
-//
-//  SampleStore.swift
-//  Burndown
-//
-
 import Foundation
 import PolyKit
+
+// MARK: - UsageSample
 
 /// A single observation of one quota window.
 nonisolated struct UsageSample: Codable, Sendable, Hashable {
@@ -17,6 +14,8 @@ nonisolated struct UsageSample: Codable, Sendable, Hashable {
 
     var remainingPercent: Double { (100 - self.usedPercent).clamped(to: 0 ... 100) }
 }
+
+// MARK: - SampleStore
 
 /// The recorded history that the burndown charts are drawn from.
 ///
@@ -37,7 +36,7 @@ final class SampleStore {
     private(set) var samples: [UsageSample] = []
 
     private let fileURL: URL
-    private var writeTask: Task<Void, Never>?
+    private var writeTask: Task<Void, Never>? = nil
 
     init() {
         let directory = URL.applicationSupportDirectory.appending(path: "Burndown", directoryHint: .isDirectory)

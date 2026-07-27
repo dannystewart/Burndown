@@ -1,9 +1,6 @@
-//
-//  QuotaWindow.swift
-//  Burndown
-//
-
 import Foundation
+
+// MARK: - QuotaWindowKind
 
 /// The kind of rolling limit a quota window represents.
 ///
@@ -21,8 +18,16 @@ nonisolated enum QuotaWindowKind: String, Codable, Sendable, CaseIterable, Ident
 
     var displayName: String {
         switch self {
-            case .session: "5-Hour"
-            case .weekly: "7-Day"
+        case .session: "5-Hour"
+        case .weekly: "7-Day"
+        }
+    }
+
+    /// The rate unit that reads most naturally for this window's timescale.
+    var burnRateUnit: BurnRateUnit {
+        switch self {
+        case .session: .perHour
+        case .weekly: .perDay
         }
     }
 
@@ -30,15 +35,9 @@ nonisolated enum QuotaWindowKind: String, Codable, Sendable, CaseIterable, Ident
     init(duration: TimeInterval) {
         self = duration <= 86400 ? .session : .weekly
     }
-
-    /// The rate unit that reads most naturally for this window's timescale.
-    var burnRateUnit: BurnRateUnit {
-        switch self {
-            case .session: .perHour
-            case .weekly: .perDay
-        }
-    }
 }
+
+// MARK: - QuotaWindow
 
 /// A single rolling quota window as reported by a provider.
 nonisolated struct QuotaWindow: Codable, Sendable, Hashable, Identifiable {
@@ -73,6 +72,8 @@ nonisolated struct QuotaWindow: Codable, Sendable, Hashable, Identifiable {
     }
 }
 
+// MARK: - BurnRateUnit
+
 /// How a burn rate should be expressed.
 nonisolated enum BurnRateUnit: Sendable {
     case perHour
@@ -80,16 +81,16 @@ nonisolated enum BurnRateUnit: Sendable {
 
     var suffix: String {
         switch self {
-            case .perHour: "/hr"
-            case .perDay: "/day"
+        case .perHour: "/hr"
+        case .perDay: "/day"
         }
     }
 
     /// Hours in one unit, for converting a per-hour rate.
     var hours: Double {
         switch self {
-            case .perHour: 1
-            case .perDay: 24
+        case .perHour: 1
+        case .perDay: 24
         }
     }
 }

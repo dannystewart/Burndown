@@ -1,8 +1,3 @@
-//
-//  BurnAnalysis.swift
-//  Burndown
-//
-
 import Foundation
 
 /// Turns a quota window into pace and projection figures.
@@ -12,16 +7,11 @@ import Foundation
 /// with it. That makes the numbers meaningful the moment the app launches, instead of needing hours
 /// of samples first.
 nonisolated struct BurnAnalysis: Sendable {
-    let window: QuotaWindow
-    let now: Date
-
-    init(window: QuotaWindow, now: Date = .now) {
-        self.window = window
-        self.now = now
-    }
-
     /// Too early in a window to divide by elapsed time without producing nonsense.
     private static let minimumElapsedHours: Double = 1.0 / 60
+
+    let window: QuotaWindow
+    let now: Date
 
     var remainingPercent: Double { self.window.remainingPercent }
     var usedPercent: Double { self.window.usedPercent }
@@ -89,5 +79,10 @@ nonisolated struct BurnAnalysis: Sendable {
             points.append((self.window.resetsAt, self.projectedRemainingAtReset))
         }
         return points
+    }
+
+    init(window: QuotaWindow, now: Date = .now) {
+        self.window = window
+        self.now = now
     }
 }

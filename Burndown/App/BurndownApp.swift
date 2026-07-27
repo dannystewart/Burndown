@@ -1,14 +1,12 @@
-//
-//  BurndownApp.swift
-//  Burndown
-//
-
+import PolyKit
 import SwiftUI
+
+// MARK: - BurndownApp
 
 @main
 struct BurndownApp: App {
-    @State private var monitor = UsageMonitor()
-    @State private var preferences = Preferences.shared
+    @State private var monitor: UsageMonitor = .init()
+    @State private var preferences: Preferences = .shared
 
     var body: some Scene {
         MenuBarExtra {
@@ -22,4 +20,19 @@ struct BurndownApp: App {
             SettingsView(preferences: self.preferences, monitor: self.monitor)
         }
     }
+}
+
+// MARK: - Logger
+
+nonisolated let log: PolyLog = .init(appGroups: [
+    .credentials,
+    .network,
+    .store,
+
+], capture: true)
+
+extension LogGroup {
+    nonisolated static let credentials: LogGroup = .init("credentials", emoji: "🔑")
+    nonisolated static let network: LogGroup = .init("network", emoji: "🌐")
+    nonisolated static let store: LogGroup = .init("store", emoji: "💾")
 }

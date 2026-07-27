@@ -1,10 +1,7 @@
-//
-//  CodexCredentialStore.swift
-//  Burndown
-//
-
 import Foundation
 import PolyKit
+
+// MARK: - CodexCredentials
 
 /// Codex CLI's OAuth credentials, as stored in `~/.codex/auth.json`.
 nonisolated struct CodexCredentials: Sendable {
@@ -13,8 +10,36 @@ nonisolated struct CodexCredentials: Sendable {
     let planType: String?
 }
 
+// MARK: - CodexCredentialStore
+
 /// Reads (and only ever reads) the credentials the Codex CLI writes to disk.
 nonisolated enum CodexCredentialStore {
+    private struct Payload: Decodable {
+        struct Tokens: Decodable {
+            struct IDToken: Decodable {
+                private enum CodingKeys: String, CodingKey {
+                    case chatgptAccountID = "chatgpt_account_id"
+                    case chatgptPlanType = "chatgpt_plan_type"
+                }
+
+                let chatgptAccountID: String?
+                let chatgptPlanType: String?
+            }
+
+            private enum CodingKeys: String, CodingKey {
+                case accessToken = "access_token"
+                case accountID = "account_id"
+                case idToken = "id_token"
+            }
+
+            let accessToken: String
+            let accountID: String?
+            let idToken: IDToken?
+        }
+
+        let tokens: Tokens?
+    }
+
     static var authFileURL: URL {
         URL.homeDirectory.appending(path: ".codex/auth.json", directoryHint: .notDirectory)
     }
@@ -54,31 +79,5 @@ nonisolated enum CodexCredentialStore {
             accountID: accountID,
             planType: tokens.idToken?.chatgptPlanType,
         )
-    }
-
-    private struct Payload: Decodable {
-        struct Tokens: Decodable {
-            struct IDToken: Decodable {
-                let chatgptAccountID: String?
-                let chatgptPlanType: String?
-
-                private enum CodingKeys: String, CodingKey {
-                    case chatgptAccountID = "chatgpt_account_id"
-                    case chatgptPlanType = "chatgpt_plan_type"
-                }
-            }
-
-            let accessToken: String
-            let accountID: String?
-            let idToken: IDToken?
-
-            private enum CodingKeys: String, CodingKey {
-                case accessToken = "access_token"
-                case accountID = "account_id"
-                case idToken = "id_token"
-            }
-        }
-
-        let tokens: Tokens?
     }
 }

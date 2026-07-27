@@ -1,18 +1,13 @@
-//
-//  QuotaCard.swift
-//  Burndown
-//
-
 import SwiftUI
 
 /// One rolling window: how much is left, the burndown so far, and where the current pace leads.
 struct QuotaCard: View {
+    /// Drives the countdown and the projection without waiting for the next poll.
+    @State private var now: Date = .now
+
     let provider: Provider
     let window: QuotaWindow
     let samples: [UsageSample]
-
-    /// Drives the countdown and the projection without waiting for the next poll.
-    @State private var now: Date = .now
 
     private var analysis: BurnAnalysis { BurnAnalysis(window: self.window, now: self.now) }
 

@@ -1,9 +1,6 @@
-//
-//  PopoverView.swift
-//  Burndown
-//
-
 import SwiftUI
+
+// MARK: - PopoverView
 
 struct PopoverView: View {
     let monitor: UsageMonitor
@@ -31,6 +28,8 @@ struct PopoverView: View {
     }
 }
 
+// MARK: - ProviderSection
+
 /// One provider's windows, or an explanation of why there aren't any.
 private struct ProviderSection: View {
     let provider: Provider
@@ -43,25 +42,25 @@ private struct ProviderSection: View {
             self.header
 
             switch self.state {
-                case .loading:
-                    self.note("Loading…")
+            case .loading:
+                self.note("Loading…")
 
-                case let .failed(error):
-                    self.failure(error)
+            case let .failed(error):
+                self.failure(error)
 
-                case let .loaded(snapshot):
-                    if snapshot.windows.isEmpty {
-                        self.note("No quota windows reported")
-                    } else {
-                        ForEach(snapshot.windows) { window in
-                            QuotaCard(
-                                provider: self.provider,
-                                window: window,
-                                samples: self.monitor.store.series(for: self.provider, window: window),
-                            )
-                        }
-                        self.missingWindowNote(for: snapshot)
+            case let .loaded(snapshot):
+                if snapshot.windows.isEmpty {
+                    self.note("No quota windows reported")
+                } else {
+                    ForEach(snapshot.windows) { window in
+                        QuotaCard(
+                            provider: self.provider,
+                            window: window,
+                            samples: self.monitor.store.series(for: self.provider, window: window),
+                        )
                     }
+                    self.missingWindowNote(for: snapshot)
+                }
             }
         }
     }
@@ -125,10 +124,12 @@ private struct ProviderSection: View {
     }
 }
 
-private struct FooterView: View {
-    let monitor: UsageMonitor
+// MARK: - FooterView
 
+private struct FooterView: View {
     @Environment(\.openSettings) private var openSettings
+
+    let monitor: UsageMonitor
 
     var body: some View {
         HStack(spacing: 8) {
