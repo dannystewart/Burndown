@@ -65,6 +65,16 @@ nonisolated struct BurnAnalysis: Sendable {
 
     var willRunOutBeforeReset: Bool { self.exhaustionDate != nil }
 
+    /// How long the remaining quota lasts at the current pace, ignoring the reset.
+    ///
+    /// `exhaustionDate` deliberately gives up when the window resets first — the right answer for
+    /// "will this bite me", but useless for ranking two windows that are both safe. This keeps
+    /// going past the reset so there's always something to compare.
+    var hoursToEmpty: Double? {
+        guard let burnPerHour, burnPerHour > 0, self.remainingPercent > 0 else { return nil }
+        return self.remainingPercent / burnPerHour
+    }
+
     /// The dashed forward-looking line for the chart, in remaining-percentage terms.
     ///
     /// If the projection runs out early it flattens along zero to the reset, rather than continuing
@@ -84,5 +94,19 @@ nonisolated struct BurnAnalysis: Sendable {
     init(window: QuotaWindow, now: Date = .now) {
         self.window = window
         self.now = now
+    }
+
+    /// Whether `lhs` is the limit you'd feel first.
+    ///
+    /// Ranked by projected time to empty rather than by percentage left, because the two disagree
+    /// often enough to matter: a weekly window sitting at 20% with five days to run is less pressing
+    /// than a five-hour window at 40% being burned through in an afternoon. Windows with no
+    /// measurable burn sort last — nothing is imminent if nothing is moving — and ties fall to
+    /// whichever has less headroom.
+    static func soonest(_ lhs: QuotaWindow, than rhs: QuotaWindow, asOf now: Date = .now) -> Bool {
+        let left = BurnAnalysis(window: lhs, now: now).hoursToEmpty ?? .infinity
+        let right = BurnAnalysis(window: rhs, now: now).hoursToEmpty ?? .infinity
+        if left != right { return left < right }
+        return lhs.remainingPercent < rhs.remainingPercent
     }
 }

@@ -15,6 +15,24 @@ nonisolated enum Format {
         return "\(minutes)m"
     }
 
+    /// A duration whose shape says which window it belongs to.
+    ///
+    /// The menu bar has room for one number and no room for a label, so the format carries the
+    /// distinction: a weekly window always leads with days, even when there are none, while a
+    /// five-hour window never shows them. `0d 1h` and `1h 0m` are the same length of time and
+    /// different limits, and now they look it.
+    static func duration(_ interval: TimeInterval, for kind: QuotaWindowKind) -> String {
+        let total = Int(max(0, interval))
+        let days = total / 86400
+        let hours = (total % 86400) / 3600
+        let minutes = (total % 3600) / 60
+
+        return switch kind {
+        case .session: hours > 0 ? "\(hours)h \(minutes)m" : "\(minutes)m"
+        case .weekly: days > 0 || hours > 0 ? "\(days)d \(hours)h" : "0d \(minutes)m"
+        }
+    }
+
     /// A weekday and time, for reset moments more than a few hours out: `Fri 8:00 AM`.
     static func dayAndTime(_ date: Date) -> String {
         date.formatted(.dateTime.weekday(.abbreviated).hour().minute())

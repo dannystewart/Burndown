@@ -47,7 +47,7 @@ nonisolated enum MenuBarFormat: String, CaseIterable, Identifiable, Sendable {
     /// Renders one window in this format.
     func text(for window: QuotaWindow, asOf now: Date) -> String {
         let percent = Format.percent(window.remainingPercent)
-        let left = Format.duration(window.resetsAt.timeIntervalSince(now))
+        let left = Format.duration(window.resetsAt.timeIntervalSince(now), for: window.kind)
         let at = Format.dayAndTime(window.resetsAt)
 
         switch self {

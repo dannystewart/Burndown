@@ -57,13 +57,13 @@ final class UsageMonitor {
         Provider.allCases.filter { self.state(for: $0).error == .notSignedIn }
     }
 
-    /// The window closest to running out, across everything we can currently see.
+    /// The limit closest to biting, across everything we can currently see.
     ///
-    /// This is what the menu bar shows, so it should be whichever number would bite first.
-    var tightestWindow: (provider: Provider, window: QuotaWindow)? {
+    /// This is what a single-line menu bar shows, so it should be whichever number would bite first.
+    var soonestLimit: (provider: Provider, window: QuotaWindow)? {
         Provider.allCases
-            .compactMap { provider in self.tightestWindow(for: provider).map { (provider: provider, window: $0) } }
-            .min { $0.window.remainingPercent < $1.window.remainingPercent }
+            .compactMap { provider in self.soonestLimit(for: provider).map { (provider: provider, window: $0) } }
+            .min { BurnAnalysis.soonest($0.window, than: $1.window) }
     }
 
     /// How long until the reading we're showing is due to be replaced.
@@ -164,9 +164,9 @@ final class UsageMonitor {
         }
     }
 
-    /// The window closest to running out for one provider.
-    func tightestWindow(for provider: Provider) -> QuotaWindow? {
-        self.state(for: provider).snapshot?.windows.min { $0.remainingPercent < $1.remainingPercent }
+    /// The limit this provider will hit soonest — the one worth a menu bar's worth of space.
+    func soonestLimit(for provider: Provider) -> QuotaWindow? {
+        self.state(for: provider).snapshot?.windows.min { BurnAnalysis.soonest($0, than: $1) }
     }
 
     /// Takes the result of one provider's fetch and decides what the UI should say about it.

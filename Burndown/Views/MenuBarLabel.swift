@@ -105,13 +105,13 @@ nonisolated struct MenuBarRow: Identifiable, Sendable {
         }
     }
 
-    /// The tightest window across everything visible, which is the number that would bite first.
+    /// The soonest limit across everything visible, which is the number that would bite first.
     ///
     /// It carries its provider's own icon rather than a generic one: a bare percentage in the menu
     /// bar is ambiguous when two providers are being watched.
     @MainActor
     private static func single(from monitor: UsageMonitor, format: MenuBarFormat) -> [MenuBarRow] {
-        guard let tightest = monitor.tightestWindow else {
+        guard let soonest = monitor.soonestLimit else {
             return [
                 MenuBarRow(
                     id: "empty",
@@ -122,14 +122,14 @@ nonisolated struct MenuBarRow: Identifiable, Sendable {
                 ),
             ]
         }
-        return [Self.row(id: "tightest", provider: tightest.provider, window: tightest.window, format: format)]
+        return [Self.row(id: "soonest", provider: soonest.provider, window: soonest.window, format: format)]
     }
 
-    /// One row per provider that's actually present, each showing its own tightest window.
+    /// One row per provider that's actually present, each showing its own soonest limit.
     @MainActor
     private static func perProvider(from monitor: UsageMonitor, format: MenuBarFormat) -> [MenuBarRow] {
         let rows = monitor.visibleProviders.compactMap { provider -> MenuBarRow? in
-            guard let window = monitor.tightestWindow(for: provider) else { return nil }
+            guard let window = monitor.soonestLimit(for: provider) else { return nil }
             return Self.row(id: provider.rawValue, provider: provider, window: window, format: format)
         }
         // A machine with only one provider signed in gets a single line rather than a lopsided pair.
