@@ -23,6 +23,7 @@ package-lock.json
 # Local development
 .nova
 **/.env
+buildServer.json
 
 # Swift package files
 .swiftlint_cache/

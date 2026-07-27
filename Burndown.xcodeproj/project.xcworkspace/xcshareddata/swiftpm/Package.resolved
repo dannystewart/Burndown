@@ -1,13 +1,22 @@
 {
-  "originHash" : "ef3d7c5686d456de9356e8adb7ef6cbd17466c75cf0931813aa878b29ad80785",
+  "originHash" : "8adc5263a8336c7c28ac159b081b2551c6f4895099969064eaf0ad013fe901bf",
   "pins" : [
+    {
+      "identity" : "polykit-swift",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/dannystewart/polykit-swift",
+      "state" : {
+        "branch" : "main",
+        "revision" : "44157086b240e97aac150390fb540fccc8fd1284"
+      }
+    },
     {
       "identity" : "supabase-swift",
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/supabase/supabase-swift.git",
       "state" : {
-        "revision" : "6dcceb2ee7670bfccf96876d5e8fa83230e568bc",
-        "version" : "2.53.0"
+        "revision" : "003e58d745f0151c6590bfcb756af8234fdc9ec8",
+        "version" : "2.54.0"
       }
     },
     {
