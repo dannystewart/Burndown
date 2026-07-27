@@ -1,26 +1,4 @@
-//
-//  Preferences.swift
-//  Burndown
-//
-
 import Foundation
-
-/// How much of the menu bar Burndown is allowed to take up.
-nonisolated enum MenuBarLayout: String, CaseIterable, Identifiable, Sendable {
-    /// A single glyph and the tightest percentage.
-    case single
-    /// One compact row per provider, stacked within the menu bar's height.
-    case stacked
-
-    var id: String { self.rawValue }
-
-    var displayName: String {
-        switch self {
-            case .single: "Single line"
-            case .stacked: "Two lines"
-        }
-    }
-}
 
 /// Everything the user can change, persisted to `UserDefaults`.
 ///
@@ -30,27 +8,53 @@ nonisolated enum MenuBarLayout: String, CaseIterable, Identifiable, Sendable {
 @Observable
 @MainActor
 final class Preferences {
-    static let shared = Preferences()
-
     private enum Key {
         static let menuBarLayout = "menuBarLayout"
-        static let menuBarUsesColor = "menuBarUsesColor"
+        static let menuBarColorMode = "menuBarColorMode"
+        static let singleLineFormat = "singleLineFormat"
+        static let stackedFormat = "stackedFormat"
     }
+
+    static let shared: Preferences = .init()
+
+    private nonisolated static var defaults: UserDefaults { .standard }
 
     var menuBarLayout: MenuBarLayout {
         didSet { Self.defaults.set(self.menuBarLayout.rawValue, forKey: Key.menuBarLayout) }
     }
 
-    /// Color draws the eye, which is useful when a window is nearly spent and noise otherwise.
-    var menuBarUsesColor: Bool {
-        didSet { Self.defaults.set(self.menuBarUsesColor, forKey: Key.menuBarUsesColor) }
+    var menuBarColorMode: MenuBarColorMode {
+        didSet { Self.defaults.set(self.menuBarColorMode.rawValue, forKey: Key.menuBarColorMode) }
     }
 
-    private nonisolated static var defaults: UserDefaults { .standard }
+    /// One line has only one window's worth of room, so it defaults to the bare number.
+    var singleLineFormat: MenuBarFormat {
+        didSet { Self.defaults.set(self.singleLineFormat.rawValue, forKey: Key.singleLineFormat) }
+    }
+
+    /// Two lines are the reason to ask for two lines, so they default to carrying more.
+    var stackedFormat: MenuBarFormat {
+        didSet { Self.defaults.set(self.stackedFormat.rawValue, forKey: Key.stackedFormat) }
+    }
+
+    /// The format in force for the layout currently on screen.
+    var activeFormat: MenuBarFormat {
+        switch self.menuBarLayout {
+        case .single: self.singleLineFormat
+        case .stacked: self.stackedFormat
+        }
+    }
 
     private init() {
-        let stored = Self.defaults.string(forKey: Key.menuBarLayout)
-        self.menuBarLayout = stored.flatMap(MenuBarLayout.init(rawValue:)) ?? .single
-        self.menuBarUsesColor = Self.defaults.bool(forKey: Key.menuBarUsesColor)
+        self.menuBarLayout = Self.read(Key.menuBarLayout) ?? .single
+        self.menuBarColorMode = Self.read(Key.menuBarColorMode) ?? .whenLow
+        self.singleLineFormat = Self.read(Key.singleLineFormat) ?? .percentage
+        self.stackedFormat = Self.read(Key.stackedFormat) ?? .percentageAndRemaining
+    }
+
+    private nonisolated static func read<Value: RawRepresentable>(_ key: String) -> Value?
+        where Value.RawValue == String
+    {
+        self.defaults.string(forKey: key).flatMap(Value.init(rawValue:))
     }
 }

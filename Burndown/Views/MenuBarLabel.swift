@@ -1,10 +1,7 @@
-//
-//  MenuBarLabel.swift
-//  Burndown
-//
-
 import AppKit
 import SwiftUI
+
+// MARK: - MenuBarLabel
 
 /// What sits in the menu bar.
 ///
@@ -14,12 +11,35 @@ import SwiftUI
 /// exact pixel height, and it gives us the one lever color needs: a template image takes on the
 /// menu bar's own color, a non-template one keeps what we drew.
 struct MenuBarLabel: View {
-    let monitor: UsageMonitor
-    let preferences: Preferences
-
     /// Comfortably inside the menu bar's usable height on every display scale.
     private static let singleLineHeight: CGFloat = 15
     private static let stackedHeight: CGFloat = 20
+
+    let monitor: UsageMonitor
+    let preferences: Preferences
+
+    private var rows: [MenuBarRow] {
+        MenuBarRow.rows(
+            from: self.monitor,
+            layout: self.preferences.menuBarLayout,
+            format: self.preferences.activeFormat,
+        )
+    }
+
+    private var rendered: NSImage? {
+        let rows = self.rows
+        let colored = self.usesColor(for: rows)
+        let stacked = rows.count > 1
+
+        let drawn = rows.map { row in
+            DrawnRow(id: row.id, symbol: row.symbol, text: row.text, color: self.color(for: row, colored: colored))
+        }
+
+        return Self.render(
+            MenuBarContent(rows: drawn, height: stacked ? Self.stackedHeight : Self.singleLineHeight),
+            asTemplate: !colored,
+        )
+    }
 
     var body: some View {
         if let image = self.rendered {
@@ -28,26 +48,6 @@ struct MenuBarLabel: View {
             // Rendering can't fail in practice, but the menu bar item must never vanish.
             Image(systemName: "chart.line.downtrend.xyaxis")
         }
-    }
-
-    private var rows: [MenuBarRow] {
-        switch self.preferences.menuBarLayout {
-            case .single: MenuBarRow.single(from: self.monitor)
-            case .stacked: MenuBarRow.perProvider(from: self.monitor)
-        }
-    }
-
-    private var rendered: NSImage? {
-        let colored = self.preferences.menuBarUsesColor
-        let rows = self.rows
-        let height = self.preferences.menuBarLayout == .stacked && rows.count > 1
-            ? Self.stackedHeight
-            : Self.singleLineHeight
-
-        return Self.render(
-            MenuBarContent(rows: rows, colored: colored, height: height),
-            asTemplate: !colored,
-        )
     }
 
     /// Rasterises the label at the screen's own scale so it stays crisp on Retina and non-Retina.
@@ -60,52 +60,114 @@ struct MenuBarLabel: View {
         image.isTemplate = asTemplate
         return image
     }
+
+    /// Whether the image can stay a template, and therefore keep following the menu bar's own color.
+    ///
+    /// Template-ness belongs to the whole image, not to individual glyphs, so a single low window
+    /// forces the entire label out of template mode. Rows that aren't low then have to be drawn in
+    /// an explicit neutral color instead of inheriting one.
+    private func usesColor(for rows: [MenuBarRow]) -> Bool {
+        switch self.preferences.menuBarColorMode {
+        case .always: true
+        case .never: false
+        case .whenLow: rows.contains(where: \.isLow)
+        }
+    }
+
+    private func color(for row: MenuBarRow, colored: Bool) -> Color {
+        // A template image is used purely as a mask, so what it's filled with only has to be opaque.
+        guard colored else { return .black }
+        // In "when low" the point is that color marks the exception; anything that isn't low should
+        // read as though it were still following the menu bar.
+        if self.preferences.menuBarColorMode == .whenLow, !row.isLow {
+            return Color(nsColor: .labelColor)
+        }
+        return row.severity
+    }
 }
 
-/// One line of the menu bar label.
+// MARK: - MenuBarRow
+
+/// One line of the menu bar label, before any decision about color has been made.
 nonisolated struct MenuBarRow: Identifiable, Sendable {
     let id: String
     let symbol: String
     let text: String
-    /// The color to use when color is switched on; ignored entirely in template mode.
-    let color: Color
+    /// What this row would be colored if color were switched on.
+    let severity: Color
+    let isLow: Bool
+
+    @MainActor
+    static func rows(from monitor: UsageMonitor, layout: MenuBarLayout, format: MenuBarFormat) -> [MenuBarRow] {
+        switch layout {
+        case .single: self.single(from: monitor, format: format)
+        case .stacked: self.perProvider(from: monitor, format: format)
+        }
+    }
 
     /// The tightest window across everything visible, which is the number that would bite first.
+    ///
+    /// It carries its provider's own icon rather than a generic one: a bare percentage in the menu
+    /// bar is ambiguous when two providers are being watched.
     @MainActor
-    static func single(from monitor: UsageMonitor) -> [MenuBarRow] {
+    private static func single(from monitor: UsageMonitor, format: MenuBarFormat) -> [MenuBarRow] {
         guard let tightest = monitor.tightestWindow else {
-            return [MenuBarRow(id: "empty", symbol: "chart.line.downtrend.xyaxis", text: "", color: .primary)]
+            return [
+                MenuBarRow(
+                    id: "empty",
+                    symbol: "chart.line.downtrend.xyaxis",
+                    text: "",
+                    severity: .primary,
+                    isLow: false,
+                ),
+            ]
         }
-        return [
-            MenuBarRow(
-                id: "tightest",
-                symbol: "chart.line.downtrend.xyaxis",
-                text: Format.percent(tightest.window.remainingPercent),
-                color: tightest.window.severityColor,
-            ),
-        ]
+        return [Self.row(id: "tightest", provider: tightest.provider, window: tightest.window, format: format)]
     }
 
     /// One row per provider that's actually present, each showing its own tightest window.
     @MainActor
-    static func perProvider(from monitor: UsageMonitor) -> [MenuBarRow] {
+    private static func perProvider(from monitor: UsageMonitor, format: MenuBarFormat) -> [MenuBarRow] {
         let rows = monitor.visibleProviders.compactMap { provider -> MenuBarRow? in
             guard let window = monitor.tightestWindow(for: provider) else { return nil }
-            return MenuBarRow(
-                id: provider.rawValue,
-                symbol: provider.symbolName,
-                text: Format.percent(window.remainingPercent),
-                color: window.severityColor,
-            )
+            return Self.row(id: provider.rawValue, provider: provider, window: window, format: format)
         }
-        return rows.isEmpty ? Self.single(from: monitor) : rows
+        // A machine with only one provider signed in gets a single line rather than a lopsided pair.
+        return rows.isEmpty ? Self.single(from: monitor, format: format) : rows
+    }
+
+    @MainActor
+    private static func row(
+        id: String,
+        provider: Provider,
+        window: QuotaWindow,
+        format: MenuBarFormat,
+    ) -> MenuBarRow {
+        MenuBarRow(
+            id: id,
+            symbol: provider.symbolName,
+            text: format.text(for: window, asOf: .now),
+            severity: window.severityColor,
+            isLow: window.isLow,
+        )
     }
 }
 
+// MARK: - DrawnRow
+
+/// A row with its color already decided.
+private struct DrawnRow: Identifiable {
+    let id: String
+    let symbol: String
+    let text: String
+    let color: Color
+}
+
+// MARK: - MenuBarContent
+
 /// The drawn label, sized to fit the menu bar exactly.
 private struct MenuBarContent: View {
-    let rows: [MenuBarRow]
-    let colored: Bool
+    let rows: [DrawnRow]
     let height: CGFloat
 
     private var isStacked: Bool { self.rows.count > 1 }
@@ -125,9 +187,7 @@ private struct MenuBarContent: View {
                             .monospacedDigit()
                     }
                 }
-                // In template mode only the alpha survives, so a flat opaque fill is what's wanted;
-                // in color mode this is where severity actually shows up.
-                .foregroundStyle(self.colored ? row.color : .black)
+                .foregroundStyle(row.color)
             }
         }
         .frame(height: self.height, alignment: .center)

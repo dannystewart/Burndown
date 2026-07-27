@@ -1,8 +1,3 @@
-//
-//  SettingsView.swift
-//  Burndown
-//
-
 import SwiftUI
 
 /// The settings window, opened from the popover's gear.
@@ -11,28 +6,15 @@ import SwiftUI
 /// number at a glance, and every row added to it competes with that. Settings are rare enough to
 /// live somewhere they can grow.
 struct SettingsView: View {
+    @State private var launchesAtLogin: Bool = LoginItem.isEnabled
+
     let preferences: Preferences
     let monitor: UsageMonitor
 
-    @State private var launchesAtLogin: Bool = LoginItem.isEnabled
-
     var body: some View {
         Form {
-            Section("Menu Bar") {
-                Picker("Layout", selection: Bindable(self.preferences).menuBarLayout) {
-                    ForEach(MenuBarLayout.allCases) { layout in
-                        Text(layout.displayName).tag(layout)
-                    }
-                }
-
-                Toggle(isOn: Bindable(self.preferences).menuBarUsesColor) {
-                    Text("Use color")
-                    Text("Colors the percentage by how much headroom is left")
-                }
-            }
-
-            Section {
-                Toggle("Launch at login", isOn: self.$launchesAtLogin)
+            Section("General") {
+                Toggle("Launch at Login", isOn: self.$launchesAtLogin)
                     .onChange(of: self.launchesAtLogin) { _, enabled in
                         // The system is the source of truth here, not us: if registration is
                         // refused, snap the toggle back to what actually happened.
@@ -40,6 +22,32 @@ struct SettingsView: View {
                             self.launchesAtLogin = LoginItem.isEnabled
                         }
                     }
+            }
+
+            Section("Menu Bar") {
+                Picker("Layout", selection: Bindable(self.preferences).menuBarLayout) {
+                    ForEach(MenuBarLayout.allCases) { layout in
+                        Text(layout.displayName).tag(layout)
+                    }
+                }
+
+                Picker("Single-Line Format", selection: Bindable(self.preferences).singleLineFormat) {
+                    ForEach(MenuBarFormat.allCases) { format in
+                        Text(format.displayName).tag(format)
+                    }
+                }
+
+                Picker("Two-Line Format", selection: Bindable(self.preferences).stackedFormat) {
+                    ForEach(MenuBarFormat.allCases) { format in
+                        Text(format.displayName).tag(format)
+                    }
+                }
+
+                Picker("Use Color", selection: Bindable(self.preferences).menuBarColorMode) {
+                    ForEach(MenuBarColorMode.allCases) { mode in
+                        Text(mode.displayName).tag(mode)
+                    }
+                }
             }
 
             Section("Providers") {
@@ -52,7 +60,7 @@ struct SettingsView: View {
             }
         }
         .formStyle(.grouped)
-        .frame(width: 420, height: 400)
+        .frame(width: 440, height: 480)
         .fixedSize(horizontal: false, vertical: true)
     }
 

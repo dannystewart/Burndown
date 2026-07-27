@@ -1,11 +1,8 @@
-//
-//  Formatting.swift
-//  Burndown
-//
-
 import SwiftUI
 
-enum Format {
+// MARK: - Format
+
+nonisolated enum Format {
     /// A short human duration: `3d 21h`, `2h 10m`, `45m`.
     static func duration(_ interval: TimeInterval) -> String {
         let total = Int(max(0, interval))
@@ -37,26 +34,33 @@ extension Provider {
     /// Distinguishes the two providers' charts at a glance.
     var tint: Color {
         switch self {
-            case .claude: Color(red: 0.85, green: 0.47, blue: 0.34)
-            case .codex: Color(red: 0.35, green: 0.62, blue: 0.95)
+        case .claude: Color(red: 0.85, green: 0.47, blue: 0.34)
+        case .codex: Color(red: 0.35, green: 0.62, blue: 0.95)
         }
     }
 
     var symbolName: String {
         switch self {
-            case .claude: "asterisk"
-            case .codex: "chevron.left.forwardslash.chevron.right"
+        case .claude: "asterisk"
+        case .codex: "chevron.left.forwardslash.chevron.right"
         }
     }
 }
 
 extension QuotaWindow {
+    /// Below this much headroom a window is worth noticing; below `critical` it's worth worrying.
+    static let warningThreshold: Double = 40
+    static let criticalThreshold: Double = 15
+
     /// Color by how much headroom is left, so urgency reads before any of the text does.
     var severityColor: Color {
         switch self.remainingPercent {
-            case ..<15: .red
-            case ..<40: .orange
-            default: .green
+        case ..<Self.criticalThreshold: .red
+        case ..<Self.warningThreshold: .orange
+        default: .green
         }
     }
+
+    /// Whether this window has crossed into territory the menu bar should call out.
+    var isLow: Bool { self.remainingPercent < Self.warningThreshold }
 }
