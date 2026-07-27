@@ -1,0 +1,39 @@
+# Builds and temp files
+.DS_Store
+*.tmp
+**/.build/
+**/build/
+**/node_modules/
+**/supabase/.temp
+
+# Lock files
+deno.lock
+package-lock.json
+
+# AI tools
+.claude/
+.codex/
+.cursor/
+.cursorindexingignore
+.firecrawl/
+.pi-lens/
+.sisyphus/
+.specstory/
+
+# Local development
+.nova
+**/.env
+
+# Swift package files
+.swiftlint_cache/
+.swiftpm/
+Packages/
+
+# Xcode data
+*.xcodeproj/xcuserdata/
+*.xcuserdata/
+*.xcworkspace/xcuserdata/
+**/UserInterfaceState.xcuserstate
+Config/*.xcconfig
+DerivedData/
+**/xcuserdata

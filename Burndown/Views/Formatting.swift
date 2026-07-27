@@ -1,0 +1,62 @@
+//
+//  Formatting.swift
+//  Burndown
+//
+
+import SwiftUI
+
+enum Format {
+    /// A short human duration: `3d 21h`, `2h 10m`, `45m`.
+    static func duration(_ interval: TimeInterval) -> String {
+        let total = Int(max(0, interval))
+        let days = total / 86400
+        let hours = (total % 86400) / 3600
+        let minutes = (total % 3600) / 60
+
+        if days > 0 { return "\(days)d \(hours)h" }
+        if hours > 0 { return "\(hours)h \(minutes)m" }
+        return "\(minutes)m"
+    }
+
+    /// A weekday and time, for reset moments more than a few hours out: `Fri 8:00 AM`.
+    static func dayAndTime(_ date: Date) -> String {
+        date.formatted(.dateTime.weekday(.abbreviated).hour().minute())
+    }
+
+    static func percent(_ value: Double) -> String {
+        "\(Int(value.rounded()))%"
+    }
+
+    /// One decimal place, for burn rates where whole numbers are too coarse.
+    static func rate(_ value: Double) -> String {
+        String(format: "%.1f", value)
+    }
+}
+
+extension Provider {
+    /// Distinguishes the two providers' charts at a glance.
+    var tint: Color {
+        switch self {
+            case .claude: Color(red: 0.85, green: 0.47, blue: 0.34)
+            case .codex: Color(red: 0.35, green: 0.62, blue: 0.95)
+        }
+    }
+
+    var symbolName: String {
+        switch self {
+            case .claude: "asterisk"
+            case .codex: "chevron.left.forwardslash.chevron.right"
+        }
+    }
+}
+
+extension QuotaWindow {
+    /// Colour by how much headroom is left, so urgency reads before any of the text does.
+    var severityColor: Color {
+        switch self.remainingPercent {
+            case ..<15: .red
+            case ..<40: .orange
+            default: .green
+        }
+    }
+}
