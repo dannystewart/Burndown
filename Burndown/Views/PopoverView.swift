@@ -13,7 +13,7 @@ struct PopoverView: View {
         // zero and collapse. The content is bounded at four cards, so it can size the window itself.
         VStack(spacing: 0) {
             VStack(alignment: .leading, spacing: 14) {
-                ForEach(Provider.allCases) { provider in
+                ForEach(self.monitor.visibleProviders) { provider in
                     ProviderSection(provider: provider, monitor: self.monitor)
                 }
             }
@@ -128,18 +128,11 @@ private struct ProviderSection: View {
 private struct FooterView: View {
     let monitor: UsageMonitor
 
-    @State private var launchesAtLogin: Bool = LoginItem.isEnabled
+    @Environment(\.openSettings) private var openSettings
 
     var body: some View {
         HStack(spacing: 8) {
-            Toggle("Launch at login", isOn: self.$launchesAtLogin)
-                .toggleStyle(.checkbox)
-                .font(.system(size: 10))
-                .onChange(of: self.launchesAtLogin) { _, enabled in
-                    if !LoginItem.setEnabled(enabled) {
-                        self.launchesAtLogin = LoginItem.isEnabled
-                    }
-                }
+            self.absenceNote
 
             Spacer()
 
@@ -149,6 +142,17 @@ private struct FooterView: View {
                     .foregroundStyle(.tertiary)
                     .monospacedDigit()
             }
+
+            Button {
+                // An accessory app has no menu bar of its own, so the settings window would open
+                // behind everything without asking for activation first.
+                NSApp.activate(ignoringOtherApps: true)
+                self.openSettings()
+            } label: {
+                Image(systemName: "gearshape")
+            }
+            .buttonStyle(.borderless)
+            .help("Settings")
 
             Button {
                 Task { await self.monitor.refresh() }
@@ -169,5 +173,20 @@ private struct FooterView: View {
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 8)
+    }
+
+    /// Accounts for a provider that isn't set up here.
+    ///
+    /// Absent providers are dropped from the list entirely rather than shown as errors, but saying
+    /// nothing at all would make it look like Burndown had quietly forgotten one. A line in the same
+    /// register as the rest of the footer answers the question without asking to be read.
+    @ViewBuilder
+    private var absenceNote: some View {
+        let missing = self.monitor.missingProviders
+        if !missing.isEmpty {
+            Text("No \(missing.map(\.displayName).joined(separator: " or ")) sign-in detected")
+                .font(.system(size: 9))
+                .foregroundStyle(.tertiary)
+        }
     }
 }

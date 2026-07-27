@@ -51,7 +51,7 @@ extension Provider {
 }
 
 extension QuotaWindow {
-    /// Colour by how much headroom is left, so urgency reads before any of the text does.
+    /// Color by how much headroom is left, so urgency reads before any of the text does.
     var severityColor: Color {
         switch self.remainingPercent {
             case ..<15: .red
