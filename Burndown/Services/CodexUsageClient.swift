@@ -21,14 +21,18 @@ nonisolated enum CodexUsageClient {
                 case resetAt = "reset_at"
             }
 
-            let usedPercent: Double
+            /// Optional for the same reason as every other field here: a single null anywhere in
+            /// the object fails the whole response, not just this window.
+            let usedPercent: Double?
             let limitWindowSeconds: Double?
             let resetAfterSeconds: Double?
             /// Absolute reset time as a Unix timestamp, when provided.
             let resetAt: Double?
 
             func window() -> QuotaWindow? {
-                guard let duration = limitWindowSeconds, duration > 0 else { return nil }
+                guard let usedPercent, let duration = limitWindowSeconds, duration > 0 else {
+                    return nil
+                }
 
                 // Prefer the absolute reset time; fall back to the relative countdown.
                 let resolvedReset: Date? = self.resetAt.map { Date(timeIntervalSince1970: $0) }
@@ -37,7 +41,7 @@ nonisolated enum CodexUsageClient {
 
                 return QuotaWindow(
                     kind: QuotaWindowKind(duration: duration),
-                    usedPercent: self.usedPercent.clamped(to: 0 ... 100),
+                    usedPercent: usedPercent.clamped(to: 0 ... 100),
                     resetsAt: resetsAt,
                     duration: duration,
                 )

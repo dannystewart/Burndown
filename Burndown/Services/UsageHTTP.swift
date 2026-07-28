@@ -25,6 +25,8 @@ nonisolated enum UsageHTTP {
         return decoder
     }()
 
+    private static let excerptLimit = 600
+
     /// Performs a request and decodes it, translating transport and status codes into `UsageError`.
     static func get<Response: Decodable>(
         _ request: URLRequest,
@@ -64,9 +66,33 @@ nonisolated enum UsageHTTP {
         do {
             return try self.decoder.decode(Response.self, from: data)
         } catch {
-            log.error("Couldn't decode \(provider.displayName) usage: \(error)", group: .network)
+            log.error(
+                """
+                Couldn't decode \(provider.displayName) usage: \(error)
+                Body: \(Self.excerpt(of: data))
+                """,
+                group: .network,
+            )
             throw .malformedResponse("Unexpected response format")
         }
+    }
+
+    /// A short, printable prefix of a response body, for diagnosing decode failures.
+    ///
+    /// The `DecodingError` alone can't distinguish a missing field from a body that was never JSON
+    /// (an edge or proxy error page returned with a 200), and these failures are transient enough
+    /// that they can't reliably be reproduced after the fact. Neither usage endpoint returns
+    /// credentials in its body, so the excerpt is safe to log.
+    private static func excerpt(of data: Data) -> String {
+        guard !data.isEmpty else { return "<empty>" }
+        guard let text = String(data: data, encoding: .utf8) else {
+            return "<\(data.count) bytes, not UTF-8>"
+        }
+
+        let collapsed = text.split(whereSeparator: \.isWhitespace).joined(separator: " ")
+        return collapsed.count > self.excerptLimit
+            ? "\(collapsed.prefix(self.excerptLimit))… (\(data.count) bytes)"
+            : collapsed
     }
 
     /// Parses an ISO-8601 timestamp, tolerating more precision than Foundation accepts.

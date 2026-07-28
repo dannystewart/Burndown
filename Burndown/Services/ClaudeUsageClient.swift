@@ -9,14 +9,23 @@ nonisolated enum ClaudeUsageClient {
                 case resetsAt = "resets_at"
             }
 
-            let utilization: Double
-            let resetsAt: Date
+            /// Optional so a null field costs one window rather than the whole response.
+            ///
+            /// Declaring the parent as `Window?` isn't enough: optional decoding only tolerates an
+            /// explicit `null` for the entire object, so a null *inside* it still throws and takes
+            /// every other window down with it. Anthropic does return null resets elsewhere in this
+            /// payload (the scoped weekly limit), so the shape is clearly permitted.
+            let utilization: Double?
+            let resetsAt: Date?
 
-            func window(kind: QuotaWindowKind, duration: TimeInterval) -> QuotaWindow {
-                QuotaWindow(
+            func window(kind: QuotaWindowKind, duration: TimeInterval) -> QuotaWindow? {
+                guard let utilization = self.utilization, let resetsAt = self.resetsAt else {
+                    return nil
+                }
+                return QuotaWindow(
                     kind: kind,
-                    usedPercent: self.utilization.clamped(to: 0 ... 100),
-                    resetsAt: self.resetsAt,
+                    usedPercent: utilization.clamped(to: 0 ... 100),
+                    resetsAt: resetsAt,
                     duration: duration,
                 )
             }
@@ -44,8 +53,8 @@ nonisolated enum ClaudeUsageClient {
 
         // Anthropic names its windows explicitly, so the durations are known rather than reported.
         let windows: [QuotaWindow] = [
-            response.fiveHour.map { $0.window(kind: .session, duration: 5 * 3600) },
-            response.sevenDay.map { $0.window(kind: .weekly, duration: 7 * 86400) },
+            response.fiveHour.flatMap { $0.window(kind: .session, duration: 5 * 3600) },
+            response.sevenDay.flatMap { $0.window(kind: .weekly, duration: 7 * 86400) },
         ].compactMap(\.self)
 
         return UsageSnapshot(
