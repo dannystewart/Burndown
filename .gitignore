@@ -3,12 +3,7 @@
 *.tmp
 **/.build/
 **/build/
-**/node_modules/
-**/supabase/.temp
-
-# Lock files
-deno.lock
-package-lock.json
+releases/
 
 # AI tools
 .claude/
