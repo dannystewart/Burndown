@@ -90,19 +90,13 @@ struct QuotaCard: View {
         .frame(height: 76, alignment: .center)
     }
 
+    /// How fast the quota is going, then whether that's a problem.
+    ///
+    /// Two lines rather than three. The used percentage is already the headline above, and the gap
+    /// from steady burn is only that number subtracted from the elapsed fraction, so spelling out
+    /// the rate, the comparison, and the difference was the same fact stated three ways.
     private var summary: some View {
         VStack(alignment: .leading, spacing: 2) {
-            HStack(spacing: 4) {
-                if let rate = self.analysis.burnRate {
-                    Text("Burn \(Format.rate(rate.value))%\(rate.unit.suffix)")
-                } else {
-                    Text("Burn not measurable yet")
-                }
-                Text("·")
-                Text("Used \(Format.percent(self.analysis.usedPercent)) vs \(Format.percent(self.analysis.steadyPacePercent)) pace")
-            }
-            .foregroundStyle(.secondary)
-
             self.paceLine
             self.projectionLine
         }
@@ -110,24 +104,31 @@ struct QuotaCard: View {
         .monospacedDigit()
     }
 
-    /// Whether you're spending faster or slower than an even burn would predict.
+    /// The burn rate, and whether it's heavier or lighter than spending the window evenly.
+    ///
+    /// "Under" and "over" rather than "behind" and "ahead of" steady burn: falling behind sounds
+    /// like the bad case everywhere else, and here it's the good one.
     private var paceLine: some View {
         let delta = self.analysis.paceDeltaPoints
-        let magnitude = Format.rate(abs(delta))
-        let text = delta >= 0
-            ? "\(magnitude)pp ahead of steady burn"
-            : "\(magnitude)pp behind steady burn"
-        return Text(text)
-            .foregroundStyle(delta >= 0 ? .orange : Color.secondary)
+        let comparison = "\(Format.percent(abs(delta))) \(delta >= 0 ? "over" : "under") pace"
+
+        return HStack(spacing: 4) {
+            if let rate = self.analysis.burnRate {
+                Text("\(Format.rate(rate.value))%\(rate.unit.suffix)")
+                Text("·")
+            }
+            Text(comparison)
+        }
+        .foregroundStyle(delta >= 0 ? .orange : Color.secondary)
     }
 
     @ViewBuilder
     private var projectionLine: some View {
         if let exhaustion = self.analysis.exhaustionDate {
-            Text("Runs out in \(Format.duration(exhaustion.timeIntervalSince(self.now))) (\(Format.dayAndTime(exhaustion))) before reset")
+            Text("Runs out in \(Format.duration(exhaustion.timeIntervalSince(self.now))) (\(Format.dayAndTime(exhaustion)))")
                 .foregroundStyle(.red)
         } else if self.analysis.burnRate != nil {
-            Text("Safe until reset (projected \(Format.percent(self.analysis.projectedRemainingAtReset)) left)")
+            Text("On track — \(Format.percent(self.analysis.projectedRemainingAtReset)) left at reset")
                 .foregroundStyle(.secondary)
         }
     }

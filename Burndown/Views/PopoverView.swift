@@ -59,7 +59,6 @@ private struct ProviderSection: View {
                             samples: self.monitor.store.series(for: self.provider, window: window),
                         )
                     }
-                    self.missingWindowNote(for: snapshot)
                 }
             }
         }
@@ -108,33 +107,6 @@ private struct ProviderSection: View {
         .padding(10)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(.quaternary.opacity(0.35), in: .rect(cornerRadius: 8))
-    }
-
-    /// Says so when a provider reports one window but not the other.
-    ///
-    /// Codex reports its windows by length rather than by name, and on some plans only a weekly
-    /// limit comes back at all. That's a real answer, not a failure, so it's worth stating plainly
-    /// instead of leaving a blank card that looks broken.
-    ///
-    /// A window we've recorded before is a different situation: Anthropic drops the five-hour
-    /// window's reset time between periods, so it disappears for a few minutes at a time. Calling
-    /// that a plan limitation would be wrong, so recorded history picks the wording.
-    @ViewBuilder
-    private func missingWindowNote(for snapshot: UsageSnapshot) -> some View {
-        let missing = QuotaWindowKind.allCases.filter { snapshot.window($0) == nil }
-        let unsupported = missing.filter {
-            !self.monitor.store.hasHistory(for: self.provider, kind: $0)
-        }
-
-        if !unsupported.isEmpty {
-            self.note("No \(Self.list(unsupported)) window on this plan")
-        } else if !missing.isEmpty {
-            self.note("\(Self.list(missing)) window is between periods")
-        }
-    }
-
-    private static func list(_ kinds: [QuotaWindowKind]) -> String {
-        kinds.map(\.displayName).joined(separator: " or ")
     }
 }
 

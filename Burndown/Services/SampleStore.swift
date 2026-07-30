@@ -114,15 +114,6 @@ final class SampleStore {
             .sorted { $0.at < $1.at }
     }
 
-    /// Whether this provider has ever reported the given window kind within the retention period.
-    ///
-    /// Distinguishes a plan that genuinely has no such window from one that's momentarily between
-    /// periods. Anthropic returns a null `resets_at` for a five-hour window that has expired but
-    /// not yet restarted, which lasted about eighteen minutes when observed.
-    func hasHistory(for provider: Provider, kind: QuotaWindowKind) -> Bool {
-        self.samples.contains { $0.provider == provider && $0.kind == kind }
-    }
-
     private func prune() {
         let cutoff = Date.now.addingTimeInterval(-Self.retention)
         self.samples.removeAll { $0.at < cutoff }
