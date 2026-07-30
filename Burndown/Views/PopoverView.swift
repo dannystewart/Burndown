@@ -87,7 +87,7 @@ private struct ProviderSection: View {
     private func note(_ text: String) -> some View {
         Text(text)
             .font(.system(size: 10))
-            .foregroundStyle(.tertiary)
+            .foregroundStyle(Color.mutedText)
     }
 
     private func failure(_ error: UsageError) -> some View {
@@ -102,7 +102,7 @@ private struct ProviderSection: View {
             if let suggestion = error.recoverySuggestion(for: self.provider) {
                 Text(suggestion)
                     .font(.system(size: 9, design: .monospaced))
-                    .foregroundStyle(.tertiary)
+                    .foregroundStyle(Color.mutedText)
             }
         }
         .padding(10)
@@ -154,7 +154,7 @@ private struct FooterView: View {
             if let updated = self.monitor.lastUpdated {
                 Text("Updated \(updated.formatted(date: .omitted, time: .shortened))")
                     .font(.system(size: 9))
-                    .foregroundStyle(.tertiary)
+                    .foregroundStyle(Color.mutedText)
                     .monospacedDigit()
             }
 
@@ -201,7 +201,7 @@ private struct FooterView: View {
         if !missing.isEmpty {
             Text("No \(missing.map(\.displayName).joined(separator: " or ")) sign-in detected")
                 .font(.system(size: 9))
-                .foregroundStyle(.tertiary)
+                .foregroundStyle(Color.mutedText)
         }
     }
 }

@@ -46,12 +46,12 @@ struct QuotaCard: View {
         HStack {
             Text(self.window.kind.displayName.uppercased())
                 .font(.system(size: 9, weight: .semibold))
-                .foregroundStyle(.tertiary)
+                .foregroundStyle(Color.mutedText)
                 .tracking(0.6)
             Spacer()
             Text("Resets in \(Format.duration(self.window.resetsAt.timeIntervalSince(self.now)))")
                 .font(.system(size: 9))
-                .foregroundStyle(.tertiary)
+                .foregroundStyle(Color.mutedText)
                 .monospacedDigit()
         }
     }
@@ -86,7 +86,7 @@ struct QuotaCard: View {
             Text("Recording history — the chart fills in as Burndown runs")
         }
         .font(.system(size: 9))
-        .foregroundStyle(.tertiary)
+        .foregroundStyle(Color.mutedText)
         .frame(height: 76, alignment: .center)
     }
 

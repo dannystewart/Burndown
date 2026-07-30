@@ -1,5 +1,10 @@
 import SwiftUI
 
+extension Color {
+    /// Muted popover copy that remains legible over translucent, light backgrounds.
+    static let mutedText = Color.primary.opacity(0.45)
+}
+
 // MARK: - Format
 
 nonisolated enum Format {
