@@ -74,7 +74,7 @@ private struct ProviderSection: View {
             if let plan = self.state.snapshot?.plan {
                 Text(plan.capitalized)
                     .font(.system(size: 9, weight: .medium))
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(Color.mutedText)
                     .padding(.horizontal, 5)
                     .padding(.vertical, 1)
                     .background(.quaternary, in: .capsule)

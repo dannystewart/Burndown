@@ -103,7 +103,7 @@ struct BurndownChart: View {
                 AxisValueLabel(anchor: .leading) {
                     Text(Format.percent(mark.as(Double.self) ?? 0))
                         .font(.system(size: 8))
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(Color.mutedText)
                 }
             }
         }
@@ -114,7 +114,7 @@ struct BurndownChart: View {
                 AxisValueLabel(anchor: .top) {
                     Text(mark.as(Date.self) ?? .now, format: self.xAxisFormat)
                         .font(.system(size: 8))
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(Color.mutedText)
                 }
             }
         }

@@ -64,7 +64,7 @@ struct QuotaCard: View {
                 .foregroundStyle(self.window.severityColor)
             Text("remaining")
                 .font(.caption)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(Color.mutedText)
         }
     }
 
@@ -92,12 +92,15 @@ struct QuotaCard: View {
 
     /// How fast the quota is going, then whether that's a problem.
     ///
-    /// Two lines rather than three. The used percentage is already the headline above, and the gap
+    /// One line rather than three. The used percentage is already the headline above, and the gap
     /// from steady burn is only that number subtracted from the elapsed fraction, so spelling out
-    /// the rate, the comparison, and the difference was the same fact stated three ways.
+    /// the rate, the comparison, and the difference was the same fact stated three ways. What's
+    /// left is a measurement and a verdict, and pushing them to opposite edges separates the two
+    /// without spending another row on it.
     private var summary: some View {
-        VStack(alignment: .leading, spacing: 2) {
+        HStack(alignment: .firstTextBaseline, spacing: 8) {
             self.paceLine
+            Spacer(minLength: 8)
             self.projectionLine
         }
         .font(.system(size: 9))
@@ -119,7 +122,7 @@ struct QuotaCard: View {
             }
             Text(comparison)
         }
-        .foregroundStyle(delta >= 0 ? .orange : Color.secondary)
+        .foregroundStyle(delta >= 0 ? .orange : Color.mutedText)
     }
 
     @ViewBuilder
@@ -129,7 +132,7 @@ struct QuotaCard: View {
                 .foregroundStyle(.red)
         } else if self.analysis.burnRate != nil {
             Text("On track — \(Format.percent(self.analysis.projectedRemainingAtReset)) left at reset")
-                .foregroundStyle(.secondary)
+                .foregroundStyle(Color.mutedText)
         }
     }
 }

@@ -2,6 +2,11 @@ import SwiftUI
 
 extension Color {
     /// Muted popover copy that remains legible over translucent, light backgrounds.
+    ///
+    /// Used in place of `.secondary` throughout the popover, and worth keeping that way. Hierarchical
+    /// styles pick up vibrancy from the window behind them, so `.secondary` text drifts toward
+    /// whatever the wallpaper and the chart fills happen to be — warm next to an orange burndown,
+    /// cool elsewhere. Mixing the two in one card reads as two different grays.
     static let mutedText = Color.primary.opacity(0.45)
 }
 
