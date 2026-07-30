@@ -63,23 +63,23 @@ struct MenuBarLabel: View {
 
     /// Whether the image can stay a template, and therefore keep following the menu bar's own color.
     ///
-    /// Template-ness belongs to the whole image, not to individual glyphs, so a single low window
-    /// forces the entire label out of template mode. Rows that aren't low then have to be drawn in
-    /// an explicit neutral color instead of inheriting one.
+    /// Template-ness belongs to the whole image, not to individual glyphs, so a single warning row
+    /// forces the entire label out of template mode. Other rows then have to be drawn in an explicit
+    /// neutral color instead of inheriting one.
     private func usesColor(for rows: [MenuBarRow]) -> Bool {
         switch self.preferences.menuBarColorMode {
         case .always: true
         case .never: false
-        case .whenLow: rows.contains(where: \.isLow)
+        case .whenLow: rows.contains(where: \.isWarning)
         }
     }
 
     private func color(for row: MenuBarRow, colored: Bool) -> Color {
         // A template image is used purely as a mask, so what it's filled with only has to be opaque.
         guard colored else { return .black }
-        // In "when low" the point is that color marks the exception; anything that isn't low should
-        // read as though it were still following the menu bar.
-        if self.preferences.menuBarColorMode == .whenLow, !row.isLow {
+        // In "when low" the point is that color marks the exception; anything that isn't warning
+        // should read as though it were still following the menu bar.
+        if self.preferences.menuBarColorMode == .whenLow, !row.isWarning {
             return Color(nsColor: .labelColor)
         }
         return row.severity
@@ -95,7 +95,7 @@ nonisolated struct MenuBarRow: Identifiable, Sendable {
     let text: String
     /// What this row would be colored if color were switched on.
     let severity: Color
-    let isLow: Bool
+    let isWarning: Bool
 
     @MainActor
     static func rows(from monitor: UsageMonitor, layout: MenuBarLayout, format: MenuBarFormat) -> [MenuBarRow] {
@@ -118,11 +118,19 @@ nonisolated struct MenuBarRow: Identifiable, Sendable {
                     symbol: "chart.line.downtrend.xyaxis",
                     text: "",
                     severity: .primary,
-                    isLow: false,
+                    isWarning: false,
                 ),
             ]
         }
-        return [Self.row(id: "soonest", provider: soonest.provider, window: soonest.window, format: format)]
+        return [
+            Self.row(
+                id: "soonest",
+                provider: soonest.provider,
+                window: soonest.window,
+                monitor: monitor,
+                format: format,
+            ),
+        ]
     }
 
     /// One row per provider that's actually present, each showing its own soonest limit.
@@ -130,7 +138,13 @@ nonisolated struct MenuBarRow: Identifiable, Sendable {
     private static func perProvider(from monitor: UsageMonitor, format: MenuBarFormat) -> [MenuBarRow] {
         let rows = monitor.visibleProviders.compactMap { provider -> MenuBarRow? in
             guard let window = monitor.soonestLimit(for: provider) else { return nil }
-            return Self.row(id: provider.rawValue, provider: provider, window: window, format: format)
+            return Self.row(
+                id: provider.rawValue,
+                provider: provider,
+                window: window,
+                monitor: monitor,
+                format: format,
+            )
         }
         // A machine with only one provider signed in gets a single line rather than a lopsided pair.
         return rows.isEmpty ? Self.single(from: monitor, format: format) : rows
@@ -141,15 +155,27 @@ nonisolated struct MenuBarRow: Identifiable, Sendable {
         id: String,
         provider: Provider,
         window: QuotaWindow,
+        monitor: UsageMonitor,
         format: MenuBarFormat,
     ) -> MenuBarRow {
-        MenuBarRow(
+        let paceWarning = Self.paceWindow(for: provider, in: monitor)
+            .map { BurnAnalysis(window: $0).willRunOutBeforeReset } ?? false
+        return MenuBarRow(
             id: id,
             symbol: provider.symbolName,
             text: format.text(for: window, asOf: .now),
-            severity: window.severityColor,
-            isLow: window.isLow,
+            severity: paceWarning && window.remainingPercent >= QuotaWindow.criticalThreshold
+                ? .orange
+                : window.severityColor,
+            isWarning: window.isLow || paceWarning,
         )
+    }
+
+    /// Pace warnings follow the shortest period the provider exposes: five-hour, then seven-day.
+    @MainActor
+    private static func paceWindow(for provider: Provider, in monitor: UsageMonitor) -> QuotaWindow? {
+        let snapshot = monitor.state(for: provider).snapshot
+        return snapshot?.window(.session) ?? snapshot?.window(.weekly)
     }
 }
 
