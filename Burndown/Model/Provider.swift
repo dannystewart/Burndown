@@ -2,8 +2,8 @@ import Foundation
 
 /// An AI subscription whose quota Burndown tracks.
 nonisolated enum Provider: String, Codable, Sendable, CaseIterable, Identifiable {
-    case codex
     case claude
+    case codex
 
     var id: String { self.rawValue }
 

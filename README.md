@@ -8,7 +8,7 @@ This is a personal project, not supported but shared (unlicensed) in case it's u
 
 ## What It Shows
 
-- **Menu bar:** remaining percentage for whichever window is closest to running out, or one row per provider. Configurable to show time remaining, reset time, or a combination, with color that either stays on, appears only when a window gets low, or stays off entirely.
+- **Menu bar:** used or remaining percentage for whichever window is closest to running out, or one row per provider. Configurable to show time remaining, reset time, or a combination, with color that either stays on, appears only when a window gets low, or stays off entirely.
 - **Popover:** both providers' 5-hour and 7-day windows, burn rate, projected exhaustion, and a chart of the current window built from recorded history.
 
 ## Credentials and Privacy

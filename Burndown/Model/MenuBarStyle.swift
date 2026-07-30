@@ -26,9 +26,13 @@ nonisolated enum MenuBarLayout: String, CaseIterable, Identifiable, Sendable {
 /// Kept separate from the layout so the two compose: a single line might be stripped back to a bare
 /// percentage while the two-line layout carries reset times, or the other way round.
 nonisolated enum MenuBarFormat: String, CaseIterable, Identifiable, Sendable {
+    /// Kept as `percentage` so existing saved preferences continue to mean percentage remaining.
     case percentage
+    case percentageUsed
     case percentageAndRemaining
+    case percentageUsedAndRemaining
     case percentageAndReset
+    case percentageUsedAndReset
     case remaining
     case reset
 
@@ -36,9 +40,12 @@ nonisolated enum MenuBarFormat: String, CaseIterable, Identifiable, Sendable {
 
     var displayName: String {
         switch self {
-        case .percentage: "Percentage"
-        case .percentageAndRemaining: "Percentage + Time Remaining"
-        case .percentageAndReset: "Percentage + Reset Time"
+        case .percentage: "Percentage Remaining"
+        case .percentageUsed: "Percentage Used"
+        case .percentageAndRemaining: "Percentage Remaining + Time Remaining"
+        case .percentageUsedAndRemaining: "Percentage Used + Time Remaining"
+        case .percentageAndReset: "Percentage Remaining + Reset Time"
+        case .percentageUsedAndReset: "Percentage Used + Reset Time"
         case .remaining: "Time Remaining"
         case .reset: "Reset Time"
         }
@@ -46,14 +53,18 @@ nonisolated enum MenuBarFormat: String, CaseIterable, Identifiable, Sendable {
 
     /// Renders one window in this format.
     func text(for window: QuotaWindow, asOf now: Date) -> String {
-        let percent = Format.percent(window.remainingPercent)
+        let remainingPercent = Format.percent(window.remainingPercent)
+        let usedPercent = Format.percent(window.usedPercent)
         let left = Format.duration(window.resetsAt.timeIntervalSince(now), for: window.kind)
         let at = Format.dayAndTime(window.resetsAt)
 
         switch self {
-        case .percentage: return percent
-        case .percentageAndRemaining: return "\(percent) · \(left)"
-        case .percentageAndReset: return "\(percent) · \(at)"
+        case .percentage: return remainingPercent
+        case .percentageUsed: return usedPercent
+        case .percentageAndRemaining: return "\(remainingPercent) · \(left)"
+        case .percentageUsedAndRemaining: return "\(usedPercent) · \(left)"
+        case .percentageAndReset: return "\(remainingPercent) · \(at)"
+        case .percentageUsedAndReset: return "\(usedPercent) · \(at)"
         case .remaining: return left
         case .reset: return at
         }
