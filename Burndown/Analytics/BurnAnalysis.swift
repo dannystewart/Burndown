@@ -9,6 +9,11 @@ import Foundation
 nonisolated struct BurnAnalysis: Sendable {
     /// Too early in a window to divide by elapsed time without producing nonsense.
     private static let minimumElapsedHours: Double = 1.0 / 60
+    /// Provider percentages are rounded enough that extrapolating the first sliver of a window can
+    /// turn a small amount of usage into an alarming forecast. One percent of the window gives that
+    /// reading some context; substantial early usage is strong enough evidence on its own.
+    private static let minimumElapsedFraction = 0.01
+    private static let significantEarlyUsagePercent = 5.0
 
     let window: QuotaWindow
     let now: Date
@@ -27,6 +32,9 @@ nonisolated struct BurnAnalysis: Sendable {
     /// Average consumption since the window opened, in percentage points per hour.
     var burnPerHour: Double? {
         guard self.elapsedHours >= Self.minimumElapsedHours else { return nil }
+        guard
+            self.window.elapsedFraction(asOf: self.now) >= Self.minimumElapsedFraction
+            || self.usedPercent >= Self.significantEarlyUsagePercent else { return nil }
         return self.usedPercent / self.elapsedHours
     }
 

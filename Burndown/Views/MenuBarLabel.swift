@@ -15,6 +15,8 @@ struct MenuBarLabel: View {
     private static let singleLineHeight: CGFloat = 15
     private static let stackedHeight: CGFloat = 20
 
+    @Environment(\.colorScheme) private var colorScheme
+
     let monitor: UsageMonitor
     let preferences: Preferences
 
@@ -38,6 +40,7 @@ struct MenuBarLabel: View {
         return Self.render(
             MenuBarContent(rows: drawn, height: stacked ? Self.stackedHeight : Self.singleLineHeight),
             asTemplate: !colored,
+            colorScheme: self.colorScheme,
         )
     }
 
@@ -51,8 +54,10 @@ struct MenuBarLabel: View {
     }
 
     /// Rasterises the label at the screen's own scale so it stays crisp on Retina and non-Retina.
-    private static func render(_ content: some View, asTemplate: Bool) -> NSImage? {
-        let renderer = ImageRenderer(content: content)
+    private static func render(_ content: some View, asTemplate: Bool, colorScheme: ColorScheme) -> NSImage? {
+        // ImageRenderer is detached from the status item's environment. Pass the menu bar's actual
+        // appearance through so semantic neutral colors don't get baked as black in dark mode.
+        let renderer = ImageRenderer(content: content.environment(\.colorScheme, colorScheme))
         renderer.scale = NSScreen.main?.backingScaleFactor ?? 2
         guard let image = renderer.nsImage else { return nil }
         // A template image is used purely as a mask, which is exactly what makes it follow the menu
