@@ -164,7 +164,12 @@ nonisolated struct MenuBarRow: Identifiable, Sendable {
         format: MenuBarFormat,
     ) -> MenuBarRow {
         let paceWarning = Self.paceWindow(for: provider, in: monitor)
-            .map { BurnAnalysis(window: $0).willRunOutBeforeReset } ?? false
+            .map { window in
+                // Keep early projections visible in the popover, but don't let a rounded percentage
+                // color the menu bar until a weekly window has enough history to be meaningful.
+                let canWarn = window.kind != .weekly || window.elapsedFraction() >= 0.10
+                return canWarn && BurnAnalysis(window: window).willRunOutBeforeReset
+            } ?? false
         return MenuBarRow(
             id: id,
             symbol: provider.symbolName,
