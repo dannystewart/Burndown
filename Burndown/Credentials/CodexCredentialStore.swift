@@ -22,8 +22,48 @@ nonisolated enum CodexCredentialStore {
                     case chatgptPlanType = "chatgpt_plan_type"
                 }
 
+                private struct JWTClaims: Decodable {
+                    private enum CodingKeys: String, CodingKey {
+                        case auth = "https://api.openai.com/auth"
+                    }
+
+                    let auth: IDToken?
+                }
+
                 let chatgptAccountID: String?
                 let chatgptPlanType: String?
+
+                init(from decoder: Decoder) throws {
+                    if let jwt = try? decoder.singleValueContainer().decode(String.self) {
+                        let components = jwt.split(separator: ".")
+                        guard components.count > 1 else {
+                            self.chatgptAccountID = nil
+                            self.chatgptPlanType = nil
+                            return
+                        }
+
+                        var payload = String(components[1])
+                            .replacingOccurrences(of: "-", with: "+")
+                            .replacingOccurrences(of: "_", with: "/")
+                        payload += String(repeating: "=", count: (4 - payload.count % 4) % 4)
+
+                        let claims = Data(base64Encoded: payload)
+                            .flatMap { try? JSONDecoder().decode(JWTClaims.self, from: $0) }
+                        self.chatgptAccountID = claims?.auth?.chatgptAccountID
+                        self.chatgptPlanType = claims?.auth?.chatgptPlanType
+                        return
+                    }
+
+                    let container = try decoder.container(keyedBy: CodingKeys.self)
+                    self.chatgptAccountID = try container.decodeIfPresent(
+                        String.self,
+                        forKey: .chatgptAccountID,
+                    )
+                    self.chatgptPlanType = try container.decodeIfPresent(
+                        String.self,
+                        forKey: .chatgptPlanType,
+                    )
+                }
             }
 
             private enum CodingKeys: String, CodingKey {
