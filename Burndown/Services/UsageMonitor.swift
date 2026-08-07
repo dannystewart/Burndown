@@ -56,7 +56,14 @@ final class UsageMonitor {
     var soonestLimit: (provider: Provider, window: QuotaWindow)? {
         Provider.allCases
             .compactMap { provider in self.soonestLimit(for: provider).map { (provider: provider, window: $0) } }
-            .min { BurnAnalysis.soonest($0.window, than: $1.window) }
+            .min {
+                BurnAnalysis.soonest(
+                    $0.window,
+                    samples: self.store.series(for: $0.provider, window: $0.window),
+                    than: $1.window,
+                    samples: self.store.series(for: $1.provider, window: $1.window),
+                )
+            }
     }
 
     /// Polling starts with the app, not with the popover: history has to accumulate whether or not
@@ -128,7 +135,14 @@ final class UsageMonitor {
 
     /// The limit this provider will hit soonest — the one worth a menu bar's worth of space.
     func soonestLimit(for provider: Provider) -> QuotaWindow? {
-        self.state(for: provider).snapshot?.windows.min { BurnAnalysis.soonest($0, than: $1) }
+        self.state(for: provider).snapshot?.windows.min {
+            BurnAnalysis.soonest(
+                $0,
+                samples: self.store.series(for: provider, window: $0),
+                than: $1,
+                samples: self.store.series(for: provider, window: $1),
+            )
+        }
     }
 
     private func refreshIfOlder(than maximumAge: TimeInterval) async {

@@ -14,6 +14,7 @@
 
 /* Begin PBXFileReference section */
 		000000000000000000000120 /* Burndown.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Burndown.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		000000000000000000000121 /* BurndownTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = BurndownTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		30C365B030178C1E00614271 /* BurndownIcon.icon */ = {isa = PBXFileReference; lastKnownFileType = folder.iconcomposer.icon; path = BurndownIcon.icon; sourceTree = "<group>"; };
 		30C365FA3017DA7800614271 /* BuildNumber.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = BuildNumber.xcconfig; sourceTree = "<group>"; };
 /* End PBXFileReference section */
@@ -22,6 +23,11 @@
 		000000000000000000000010 /* Burndown */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			path = Burndown;
+			sourceTree = "<group>";
+		};
+		000000000000000000000011 /* BurndownTests */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = BurndownTests;
 			sourceTree = "<group>";
 		};
 /* End PBXFileSystemSynchronizedRootGroup section */
@@ -34,6 +40,11 @@
 				30C365FE3017E42000614271 /* PolyKit in Frameworks */,
 			);
 		};
+		000000000000000131000000 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			files = (
+			);
+		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
@@ -41,6 +52,7 @@
 			isa = PBXGroup;
 			children = (
 				000000000000000000000010 /* Burndown */,
+				000000000000000000000011 /* BurndownTests */,
 				30C365B030178C1E00614271 /* BurndownIcon.icon */,
 				30C365FA3017DA7800614271 /* BuildNumber.xcconfig */,
 				000000000000000000000020 /* Products */,
@@ -51,6 +63,7 @@
 			isa = PBXGroup;
 			children = (
 				000000000000000000000120 /* Burndown.app */,
+				000000000000000000000121 /* BurndownTests.xctest */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -80,6 +93,27 @@
 			productReference = 000000000000000000000120 /* Burndown.app */;
 			productType = "com.apple.product-type.application";
 		};
+		000000000000000101000000 /* BurndownTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 000000000000000113000000 /* Build configuration list for PBXNativeTarget "BurndownTests" */;
+			buildPhases = (
+				000000000000000121000000 /* Sources */,
+				000000000000000131000000 /* Frameworks */,
+				000000000000000141000000 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				000000000000000151000000 /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				000000000000000000000011 /* BurndownTests */,
+			);
+			name = BurndownTests;
+			productName = BurndownTests;
+			productReference = 000000000000000000000121 /* BurndownTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -92,6 +126,10 @@
 				TargetAttributes = {
 					000000000000000100000000 = {
 						CreatedOnToolsVersion = 26.3;
+					};
+					000000000000000101000000 = {
+						CreatedOnToolsVersion = 27.0;
+						TestTargetID = 000000000000000100000000;
 					};
 				};
 			};
@@ -113,6 +151,7 @@
 			projectRoot = "";
 			targets = (
 				000000000000000100000000 /* Burndown */,
+				000000000000000101000000 /* BurndownTests */,
 			);
 		};
 /* End PBXProject section */
@@ -124,6 +163,11 @@
 				30C365B130178C1E00614271 /* BurndownIcon.icon in Resources */,
 			);
 		};
+		000000000000000141000000 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			files = (
+			);
+		};
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
@@ -132,7 +176,30 @@
 			files = (
 			);
 		};
+		000000000000000121000000 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			files = (
+			);
+		};
 /* End PBXSourcesBuildPhase section */
+
+/* Begin PBXContainerItemProxy section */
+		000000000000000150000000 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 000000000000000000000000 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 000000000000000100000000;
+			remoteInfo = Burndown;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXTargetDependency section */
+		000000000000000151000000 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 000000000000000100000000 /* Burndown */;
+			targetProxy = 000000000000000150000000 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
 		000000000000000011000000 /* Debug configuration for PBXProject "Burndown" */ = {
@@ -323,6 +390,38 @@
 			};
 			name = Release;
 		};
+		000000000000000113000001 /* Debug configuration for PBXNativeTarget "BurndownTests" */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = PL2FTGT24W;
+				GENERATE_INFOPLIST_FILE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 27.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.dannystewart.BurndownTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = macosx;
+				SWIFT_VERSION = 6.0;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Burndown.app/Contents/MacOS/Burndown";
+			};
+			name = Debug;
+		};
+		000000000000000113000002 /* Release configuration for PBXNativeTarget "BurndownTests" */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = PL2FTGT24W;
+				GENERATE_INFOPLIST_FILE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 27.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.dannystewart.BurndownTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = macosx;
+				SWIFT_VERSION = 6.0;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Burndown.app/Contents/MacOS/Burndown";
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -339,6 +438,14 @@
 			buildConfigurations = (
 				000000000000000111000000 /* Debug configuration for PBXNativeTarget "Burndown" */,
 				000000000000000112000000 /* Release configuration for PBXNativeTarget "Burndown" */,
+			);
+			defaultConfigurationName = Release;
+		};
+		000000000000000113000000 /* Build configuration list for PBXNativeTarget "BurndownTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				000000000000000113000001 /* Debug configuration for PBXNativeTarget "BurndownTests" */,
+				000000000000000113000002 /* Release configuration for PBXNativeTarget "BurndownTests" */,
 			);
 			defaultConfigurationName = Release;
 		};

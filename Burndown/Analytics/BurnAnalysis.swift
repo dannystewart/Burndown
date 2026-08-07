@@ -2,32 +2,31 @@ import Foundation
 
 /// Turns a quota window into pace and projection figures.
 ///
-/// The burn rate is measured from the start of the window rather than from Burndown's own recorded
-/// history, because the provider tells us how much of the window is gone and how much quota went
-/// with it. That makes the numbers meaningful the moment the app launches, instead of needing hours
-/// of samples first.
+/// Forecasts are based on usage Burndown observes after the first reading in a window. A rolling
+/// window commonly opens because one request consumed quota; extrapolating that initial burst from
+/// the window's start makes a brand-new window look certain to run out.
 nonisolated struct BurnAnalysis: Sendable {
     /// Too early in a window to divide by elapsed time without producing nonsense.
     private static let minimumElapsedHours: Double = 1.0 / 60
 
     let window: QuotaWindow
+    let samples: [UsageSample]
     let now: Date
 
     var remainingPercent: Double { self.window.remainingPercent }
     var usedPercent: Double { self.window.usedPercent }
 
-    var elapsedHours: Double {
-        max(0, self.now.timeIntervalSince(self.window.startedAt)) / 3600
-    }
-
     var hoursUntilReset: Double {
         max(0, self.window.resetsAt.timeIntervalSince(self.now)) / 3600
     }
 
-    /// Average consumption since the window opened, in percentage points per hour.
+    /// Consumption observed after Burndown established a baseline, in percentage points per hour.
     var burnPerHour: Double? {
-        guard self.elapsedHours >= Self.minimumElapsedHours else { return nil }
-        return self.usedPercent / self.elapsedHours
+        let observed = self.observedSamples
+        guard let baseline = observed.first, let latest = observed.last else { return nil }
+        let observedHours = latest.at.timeIntervalSince(baseline.at) / 3600
+        guard observedHours >= Self.minimumElapsedHours else { return nil }
+        return max(0, latest.usedPercent - baseline.usedPercent) / observedHours
     }
 
     /// The burn rate expressed in whichever unit suits this window's timescale.
@@ -94,8 +93,19 @@ nonisolated struct BurnAnalysis: Sendable {
         return points
     }
 
-    init(window: QuotaWindow, now: Date = .now) {
+    /// Provider readings, excluding the zero anchor synthesized when a reset is observed.
+    private var observedSamples: [UsageSample] {
+        self.samples
+            .filter {
+                abs($0.resetsAt.timeIntervalSince(self.window.resetsAt)) < 120
+                    && !($0.usedPercent == 0 && abs($0.at.timeIntervalSince(self.window.startedAt)) < 1)
+            }
+            .sorted { $0.at < $1.at }
+    }
+
+    init(window: QuotaWindow, samples: [UsageSample], now: Date = .now) {
         self.window = window
+        self.samples = samples
         self.now = now
     }
 
@@ -106,9 +116,15 @@ nonisolated struct BurnAnalysis: Sendable {
     /// than a five-hour window at 40% being burned through in an afternoon. Windows with no
     /// measurable burn sort last — nothing is imminent if nothing is moving — and ties fall to
     /// whichever has less headroom.
-    static func soonest(_ lhs: QuotaWindow, than rhs: QuotaWindow, asOf now: Date = .now) -> Bool {
-        let left = BurnAnalysis(window: lhs, now: now).hoursToEmpty ?? .infinity
-        let right = BurnAnalysis(window: rhs, now: now).hoursToEmpty ?? .infinity
+    static func soonest(
+        _ lhs: QuotaWindow,
+        samples lhsSamples: [UsageSample],
+        than rhs: QuotaWindow,
+        samples rhsSamples: [UsageSample],
+        asOf now: Date = .now,
+    ) -> Bool {
+        let left = BurnAnalysis(window: lhs, samples: lhsSamples, now: now).hoursToEmpty ?? .infinity
+        let right = BurnAnalysis(window: rhs, samples: rhsSamples, now: now).hoursToEmpty ?? .infinity
         if left != right { return left < right }
         return lhs.remainingPercent < rhs.remainingPercent
     }

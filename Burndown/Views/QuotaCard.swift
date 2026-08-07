@@ -9,7 +9,9 @@ struct QuotaCard: View {
     let window: QuotaWindow
     let samples: [UsageSample]
 
-    private var analysis: BurnAnalysis { BurnAnalysis(window: self.window, now: self.now) }
+    private var analysis: BurnAnalysis {
+        BurnAnalysis(window: self.window, samples: self.samples, now: self.now)
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 7) {
@@ -113,17 +115,20 @@ struct QuotaCard: View {
     /// "Under" and "over" rather than "behind" and "ahead of" steady burn: falling behind sounds
     /// like the bad case everywhere else, and here it's the good one.
     private var paceLine: some View {
-        let delta = self.analysis.paceDeltaPoints
-        let comparison = "\(Format.percent(abs(delta))) \(delta >= 0 ? "over" : "under") pace"
-
-        return HStack(spacing: 4) {
+        Group {
             if let rate = self.analysis.burnRate {
-                Text("\(Format.rate(rate.value))%\(rate.unit.suffix)")
-                Text("·")
+                let delta = self.analysis.paceDeltaPoints
+                let comparison = "\(Format.percent(abs(delta))) \(delta >= 0 ? "over" : "under") pace"
+                HStack(spacing: 4) {
+                    Text("\(Format.rate(rate.value))%\(rate.unit.suffix)")
+                    Text("·")
+                    Text(comparison)
+                }
+            } else {
+                Text("Establishing pace")
             }
-            Text(comparison)
         }
-        .foregroundStyle(delta >= 0 ? .orange : Color.mutedText)
+        .foregroundStyle(self.analysis.willRunOutBeforeReset ? .orange : Color.mutedText)
     }
 
     @ViewBuilder
