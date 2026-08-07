@@ -5,23 +5,11 @@ import PolyKit
 @Observable
 @MainActor
 final class UsageMonitor {
-    /// The minimum spacing between readings, and the only such rule in the app.
-    ///
-    /// Frequent enough to give the charts useful resolution, slow enough to be a good citizen:
-    /// Anthropic throttles this endpoint, and a five-hour window only has a hundred percentage
-    /// points to move through, so three minutes still yields far more detail than the data has.
-    ///
-    /// Every automatic trigger measures against the age of the reading we already have rather than
-    /// against its own clock — so launching, reopening the popover, and simply waiting all obey the
-    /// same limit, and none of them can be used to fetch faster by repetition. The refresh button
-    /// is the deliberate exception.
-    private static let pollInterval: TimeInterval = 180
+    /// Background polling stays conservative; opening the popover has a tighter freshness target.
+    private static let backgroundRefreshInterval: TimeInterval = 180
+    private static let popoverRefreshInterval: TimeInterval = 60
 
-    /// Ceiling on the throttle backoff.
-    ///
-    /// Deliberately shorter than `stalenessGrace`: backing off for longer than we're willing to
-    /// show a stale number would mean reporting a problem we hadn't recently retried.
-    private static let maximumBackoff: Int = 4
+    private static let schedulerResolution: TimeInterval = 15
 
     /// How old a reading can be and still be worth showing as though it were current.
     ///
@@ -32,17 +20,22 @@ final class UsageMonitor {
 
     private(set) var claude: ProviderState = .loading
     private(set) var codex: ProviderState = .loading
-    private(set) var lastUpdated: Date? = nil
-    private(set) var isRefreshing: Bool = false
 
     let store: SampleStore = .init()
-
-    /// Multiplier applied to the poll interval while a provider is throttling us.
-    private(set) var backoff: Int = 1
 
     private let cache: SnapshotCache = .init()
 
     private var pollTask: Task<Void, Never>? = nil
+    private var lastAttempt: [Provider: Date] = [:]
+    private var refreshingProviders: Set<Provider> = []
+
+    var isRefreshing: Bool { !self.refreshingProviders.isEmpty }
+
+    /// The oldest reading currently represented in the popover. A shared mutable timestamp can be
+    /// advanced by one provider and accidentally make stale data from the other look current.
+    var lastUpdated: Date? {
+        self.visibleProviders.compactMap { self.state(for: $0).snapshot?.capturedAt }.min()
+    }
 
     /// Providers that are actually set up on this machine.
     ///
@@ -66,32 +59,17 @@ final class UsageMonitor {
             .min { BurnAnalysis.soonest($0.window, than: $1.window) }
     }
 
-    /// How long until the reading we're showing is due to be replaced.
-    ///
-    /// Zero means fetch now — either it's already due, or we have nothing to show. This is the one
-    /// gate every automatic trigger goes through, and because it's measured from the reading rather
-    /// than from the trigger, quitting and relaunching gets you no closer to a fetch than waiting.
-    private var timeUntilDue: TimeInterval {
-        guard let lastUpdated else { return 0 }
-        return max(0, Self.pollInterval - Date.now.timeIntervalSince(lastUpdated))
-    }
-
     /// Polling starts with the app, not with the popover: history has to accumulate whether or not
     /// anyone is looking at it.
     ///
     /// The cached readings go up first so a launch that lands on a throttle still has something to
     /// show, rather than greeting you with an error about a limit that clears in two minutes.
     init() {
-        var seeded = [Date]()
         for provider in Provider.allCases {
             if let snapshot = self.cache[provider], Self.isFreshEnough(snapshot) {
                 self.setState(.loaded(snapshot), for: provider)
-                seeded.append(snapshot.capturedAt)
             }
         }
-        // The oldest of the two, so `lastUpdated` never overstates how current the popover is —
-        // and so the deferred first poll is timed by whichever provider needs it soonest.
-        self.lastUpdated = seeded.min()
         self.start()
     }
 
@@ -100,28 +78,27 @@ final class UsageMonitor {
         Date.now.timeIntervalSince(snapshot.capturedAt) < self.stalenessGrace
     }
 
-    private nonisolated static func load(
-        _ fetch: () async throws(UsageError) -> UsageSnapshot,
-    ) async -> ProviderState {
+    private nonisolated static func load(_ provider: Provider) async -> ProviderState {
         do {
-            return try await .loaded(fetch())
+            let snapshot = switch provider {
+            case .claude: try await ClaudeUsageClient.fetch()
+            case .codex: try await CodexUsageClient.fetch()
+            }
+            return .loaded(snapshot)
         } catch {
             log.warning("Usage fetch failed: \(error.message)", group: .network)
             return .failed(error)
         }
     }
 
-    /// Begins polling: immediately, or once the cached reading we launched with comes due.
+    /// Checks frequently enough to notice when a reading comes due without fetching more often than
+    /// the background interval. Cached readings are evaluated immediately at launch.
     func start() {
         guard self.pollTask == nil else { return }
         self.pollTask = Task { [weak self] in
-            if let wait = self?.timeUntilDue, wait > 0 {
-                try? await Task.sleep(for: .seconds(wait))
-            }
             while !Task.isCancelled {
-                await self?.refresh()
-                let backoff = self?.backoff ?? 1
-                try? await Task.sleep(for: .seconds(Self.pollInterval * Double(backoff)))
+                await self?.refreshIfOlder(than: Self.backgroundRefreshInterval)
+                try? await Task.sleep(for: .seconds(Self.schedulerResolution))
             }
         }
     }
@@ -131,30 +108,15 @@ final class UsageMonitor {
         self.pollTask = nil
     }
 
-    /// Reads both providers concurrently. Neither can block the other: a broken Codex sign-in still
-    /// leaves Claude's numbers live.
+    /// Reads both providers concurrently and publishes each result as soon as it arrives.
+    /// The refresh button deliberately bypasses the automatic retry floor.
     func refresh() async {
-        guard !self.isRefreshing else { return }
-        self.isRefreshing = true
-        defer { self.isRefreshing = false }
-
-        async let claudeState = Self.load(ClaudeUsageClient.fetch)
-        async let codexState = Self.load(CodexUsageClient.fetch)
-        let (claude, codex) = await (claudeState, codexState)
-
-        self.apply(claude, for: .claude)
-        self.apply(codex, for: .codex)
-
-        // Back off geometrically for as long as anyone is throttling us, and snap straight back to
-        // the normal cadence once they stop.
-        let throttled = [claude, codex].contains { $0.error == .rateLimited }
-        self.backoff = throttled ? min(self.backoff * 2, Self.maximumBackoff) : 1
+        await self.refresh(Provider.allCases)
     }
 
-    /// What opening the popover does: top up the numbers, but only if they're actually due.
-    func refreshIfStale() async {
-        guard self.timeUntilDue == 0 else { return }
-        await self.refresh()
+    /// Opening the popover asks for substantially fresher data than passive background polling.
+    func refreshForPopover() async {
+        await self.refreshIfOlder(than: Self.popoverRefreshInterval)
     }
 
     func state(for provider: Provider) -> ProviderState {
@@ -169,6 +131,42 @@ final class UsageMonitor {
         self.state(for: provider).snapshot?.windows.min { BurnAnalysis.soonest($0, than: $1) }
     }
 
+    private func refreshIfOlder(than maximumAge: TimeInterval) async {
+        let now = Date.now
+        let due = Provider.allCases.filter { provider in
+            guard !self.refreshingProviders.contains(provider) else { return false }
+            // A failed attempt obeys the same interval as a successful reading. Popover opens use
+            // the tighter interval, while passive retries remain on the conservative cadence.
+            if let attempted = self.lastAttempt[provider], now.timeIntervalSince(attempted) < maximumAge {
+                return false
+            }
+            guard let capturedAt = self.state(for: provider).snapshot?.capturedAt else { return true }
+            return now.timeIntervalSince(capturedAt) >= maximumAge
+        }
+        await self.refresh(due)
+    }
+
+    private func refresh(_ providers: [Provider]) async {
+        let providers = providers.filter { !self.refreshingProviders.contains($0) }
+        guard !providers.isEmpty else { return }
+
+        let attemptedAt = Date.now
+        for provider in providers {
+            self.lastAttempt[provider] = attemptedAt
+            self.refreshingProviders.insert(provider)
+        }
+
+        await withTaskGroup(of: (Provider, ProviderState).self) { group in
+            for provider in providers {
+                group.addTask { await (provider, Self.load(provider)) }
+            }
+            for await (provider, result) in group {
+                self.apply(result, for: provider)
+                self.refreshingProviders.remove(provider)
+            }
+        }
+    }
+
     /// Takes the result of one provider's fetch and decides what the UI should say about it.
     ///
     /// Rate limiting is routine on both endpoints, so a transient failure doesn't replace a reading
@@ -181,7 +179,6 @@ final class UsageMonitor {
             self.setState(.loaded(snapshot), for: provider)
             self.cache.store(snapshot)
             self.store.record(snapshot)
-            self.lastUpdated = snapshot.capturedAt
 
         case let .failed(error) where error.isTransient:
             let lastGood = self.state(for: provider).snapshot ?? self.cache[provider]

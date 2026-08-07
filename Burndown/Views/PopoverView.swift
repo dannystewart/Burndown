@@ -21,9 +21,7 @@ struct PopoverView: View {
         }
         .frame(width: 380)
         .task {
-            // Opening the popover is a strong signal the numbers are about to be read, but not a
-            // reason to re-poll numbers that are seconds old.
-            await self.monitor.refreshIfStale()
+            await self.monitor.refreshForPopover()
         }
     }
 }
@@ -123,11 +121,20 @@ private struct FooterView: View {
 
             Spacer()
 
-            if let updated = self.monitor.lastUpdated {
-                Text("Updated \(updated.formatted(date: .omitted, time: .shortened))")
-                    .font(.system(size: 9))
-                    .foregroundStyle(Color.mutedText)
-                    .monospacedDigit()
+            if self.monitor.isRefreshing {
+                HStack(spacing: 4) {
+                    ProgressView().controlSize(.mini)
+                    Text("Updating…")
+                }
+                .font(.system(size: 9))
+                .foregroundStyle(Color.mutedText)
+            } else if let updated = self.monitor.lastUpdated {
+                TimelineView(.periodic(from: .now, by: 15)) { context in
+                    Text("Updated \(Format.age(context.date.timeIntervalSince(updated)))")
+                        .font(.system(size: 9))
+                        .foregroundStyle(Color.mutedText)
+                        .monospacedDigit()
+                }
             }
 
             Button {

@@ -13,6 +13,16 @@ extension Color {
 // MARK: - Format
 
 nonisolated enum Format {
+    /// A compact age for the freshness indicator: `just now`, `45s ago`, `3m ago`.
+    static func age(_ interval: TimeInterval) -> String {
+        let seconds = Int(max(0, interval))
+        if seconds < 10 { return "just now" }
+        if seconds < 60 { return "\(seconds)s ago" }
+        let minutes = seconds / 60
+        if minutes < 60 { return "\(minutes)m ago" }
+        return "\(minutes / 60)h ago"
+    }
+
     /// A short human duration: `3d 21h`, `2h 10m`, `45m`.
     static func duration(_ interval: TimeInterval) -> String {
         let total = Int(max(0, interval))

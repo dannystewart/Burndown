@@ -33,8 +33,9 @@ struct QuotaCard: View {
         .padding(10)
         .background(.quaternary.opacity(0.35), in: .rect(cornerRadius: 8))
         .task {
-            // A slow tick is enough: everything on screen is measured in minutes. This keeps the
-            // countdown and the projection moving between the monitor's one-minute polls.
+            // This view can persist while the popover is closed. Rebase immediately when it becomes
+            // visible again, then keep the countdown and projection moving between usage polls.
+            self.now = .now
             while !Task.isCancelled {
                 try? await Task.sleep(for: .seconds(15))
                 self.now = .now
