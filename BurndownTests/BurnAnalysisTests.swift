@@ -61,6 +61,49 @@ struct BurnAnalysisTests {
         #expect(analysis.projectionPoints.isEmpty)
     }
 
+    @Test
+    func earlyWeeklyBurstDoesNotAssumeContinuousActivity() {
+        let startedAt = Date(timeIntervalSinceReferenceDate: 1_000_000)
+        let duration = 7 * 86400.0
+        let baselineAt = startedAt.addingTimeInterval(24 * 3600)
+        let latestAt = baselineAt.addingTimeInterval(40 * 60)
+        let window = QuotaWindow(
+            kind: .weekly,
+            usedPercent: 3,
+            resetsAt: startedAt.addingTimeInterval(duration),
+            duration: duration,
+        )
+        let samples = [
+            self.sample(for: window, at: baselineAt, used: 0),
+            self.sample(for: window, at: latestAt, used: 3),
+        ]
+
+        let analysis = BurnAnalysis(window: window, samples: samples, now: latestAt)
+
+        #expect(!analysis.willRunOutBeforeReset)
+    }
+
+    @Test
+    func fullDayOfWeeklyHistoryCanStillCreateExhaustionWarning() {
+        let startedAt = Date(timeIntervalSinceReferenceDate: 1_000_000)
+        let duration = 7 * 86400.0
+        let latestAt = startedAt.addingTimeInterval(24 * 3600)
+        let window = QuotaWindow(
+            kind: .weekly,
+            usedPercent: 30,
+            resetsAt: startedAt.addingTimeInterval(duration),
+            duration: duration,
+        )
+        let samples = [
+            self.sample(for: window, at: startedAt, used: 10),
+            self.sample(for: window, at: latestAt, used: 30),
+        ]
+
+        let analysis = BurnAnalysis(window: window, samples: samples, now: latestAt)
+
+        #expect(analysis.willRunOutBeforeReset)
+    }
+
     private func sample(for window: QuotaWindow, at: Date, used: Double) -> UsageSample {
         UsageSample(provider: .claude, kind: window.kind, at: at, usedPercent: used, resetsAt: window.resetsAt)
     }

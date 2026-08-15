@@ -8,6 +8,9 @@ import Foundation
 nonisolated struct BurnAnalysis: Sendable {
     /// Too early in a window to divide by elapsed time without producing nonsense.
     private static let minimumElapsedHours: Double = 1.0 / 60
+    /// A short weekly observation should not be extrapolated as round-the-clock activity.
+    private static let assumedActiveHoursPerDay: Double = 8
+    private static let hoursPerDay: Double = 24
 
     let window: QuotaWindow
     let samples: [UsageSample]
@@ -26,7 +29,23 @@ nonisolated struct BurnAnalysis: Sendable {
         guard let baseline = observed.first, let latest = observed.last else { return nil }
         let observedHours = latest.at.timeIntervalSince(baseline.at) / 3600
         guard observedHours >= Self.minimumElapsedHours else { return nil }
-        return max(0, latest.usedPercent - baseline.usedPercent) / observedHours
+        let observedRate = max(0, latest.usedPercent - baseline.usedPercent) / observedHours
+        guard self.window.kind == .weekly else { return observedRate }
+
+        // Early weekly history usually captures an active coding session but not the sleep and idle
+        // time that follows it. Ease from an eight-hour active day toward the actual wall-clock rate;
+        // after a full day, the observations themselves contain that daily activity cycle.
+        let dayCoverage = (observedHours / Self.hoursPerDay).clamped(to: 0 ... 1)
+        let activeDayFraction = Self.assumedActiveHoursPerDay / Self.hoursPerDay
+        let activityAdjustment = activeDayFraction + (1 - activeDayFraction) * dayCoverage
+        let activityAdjustedRate = observedRate * activityAdjustment
+
+        // A burst seen for only an hour or two is weak evidence that the same workload will recur
+        // every day. Regularize high early rates toward spending the full allowance evenly, without
+        // inflating observations that are already below that pace.
+        let sustainableRate = 100 / (self.window.duration / 3600)
+        guard activityAdjustedRate > sustainableRate else { return activityAdjustedRate }
+        return sustainableRate + (activityAdjustedRate - sustainableRate) * dayCoverage
     }
 
     /// The burn rate expressed in whichever unit suits this window's timescale.

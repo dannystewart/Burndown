@@ -49,7 +49,10 @@ edits with `plutil -lint Burndown.xcodeproj/project.pbxproj`.
 - Forecasts use consumption observed after the first real reading in a period. The first request may
   create a rolling window and consume quota simultaneously, so extrapolating that opening charge
   from the window start produces false exhaustion warnings. Synthetic zero reset anchors are chart
-  history, not evidence of an observed burn rate.
+  history, not evidence of an observed burn rate. Early weekly observations are adjusted from an
+  eight-hour active day toward the measured wall-clock rate as their span approaches 24 hours. High
+  sub-day rates are also regularized toward an even seven-day pace until enough evidence accumulates,
+  so a short coding burst is not treated as a workload that repeats all week.
 - Credentials are read from the stores used by the provider CLIs. Never write, refresh, rotate,
   persist, or log access tokens. Burndown stores quota percentages and timestamps only.
 - Transient provider failures may continue showing a recent snapshot. Credential failures are
