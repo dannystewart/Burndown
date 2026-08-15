@@ -7,7 +7,7 @@
       "location" : "https://github.com/dannystewart/polykit-swift",
       "state" : {
         "branch" : "main",
-        "revision" : "c44b69085a5ccae1ae6a069c9e0cb96e16ebe26c"
+        "revision" : "958bd1d8ef644dd36999c139f1ffd0f7de0d5826"
       }
     },
     {
@@ -15,8 +15,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/supabase/supabase-swift.git",
       "state" : {
-        "revision" : "b118484ae0eb4a6b6ce1b216711d660baf6ec1aa",
-        "version" : "2.54.1"
+        "revision" : "21d3aaf21ee98f41611f9f75070489fc8b23d882",
+        "version" : "2.55.1"
       }
     },
     {
