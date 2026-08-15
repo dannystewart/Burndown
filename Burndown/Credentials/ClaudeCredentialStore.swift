@@ -1,6 +1,5 @@
 import Foundation
 import PolyKit
-import Security
 
 // MARK: - ClaudeCredentials
 
@@ -14,8 +13,7 @@ nonisolated struct ClaudeCredentials: Sendable {
 
 /// Reads (and only ever reads) the credentials Claude Code stores in the Keychain.
 ///
-/// The item is owned by Claude Code, so the first read prompts the user to allow access. Burndown
-/// never writes to it, and never refreshes it — see `UsageError.recoverySuggestion(for:)`.
+/// Burndown never writes to it and never refreshes it — see `UsageError.recoverySuggestion(for:)`.
 nonisolated enum ClaudeCredentialStore {
     private struct Payload: Decodable {
         struct OAuth: Decodable {
@@ -29,35 +27,30 @@ nonisolated enum ClaudeCredentialStore {
     private static let service: String = "Claude Code-credentials"
 
     static func load() throws(UsageError) -> ClaudeCredentials {
-        let query: [String: Any] = [
-            kSecClass as String: kSecClassGenericPassword,
-            kSecAttrService as String: self.service,
-            kSecReturnData as String: true,
-            kSecMatchLimit as String: kSecMatchLimitOne,
-        ]
+        // Claude Code replaces this item when tokens rotate, discarding access granted directly to
+        // Burndown. Apple's security tool uses the stable apple-tool Keychain partition instead.
+        let process = Process()
+        process.executableURL = URL(filePath: "/usr/bin/security")
+        process.arguments = ["find-generic-password", "-s", self.service, "-w"]
 
-        var item: CFTypeRef?
-        let status = SecItemCopyMatching(query as CFDictionary, &item)
+        let output = Pipe()
+        process.standardOutput = output
+        process.standardError = FileHandle.nullDevice
 
-        switch status {
-        case errSecSuccess:
-            break
-
-        case errSecItemNotFound:
-            throw .notSignedIn
-
-        case errSecUserCanceled, errSecAuthFailed, errSecInteractionNotAllowed:
-            log.warning("Keychain access to Claude credentials denied.", group: .credentials)
-            throw .credentialsUnreadable("Keychain access denied")
-
-        default:
-            let detail = SecCopyErrorMessageString(status, nil) as String? ?? "status \(status)"
-            throw .credentialsUnreadable("Keychain error: \(detail)")
+        do {
+            try process.run()
+            process.waitUntilExit()
+        } catch {
+            throw .credentialsUnreadable("Couldn't read the login Keychain")
         }
 
-        guard let data = item as? Data else {
-            throw .credentialsUnreadable("Keychain returned no data")
+        guard process.terminationStatus == 0 else {
+            if process.terminationStatus == 44 { throw .notSignedIn }
+            log.warning("Keychain lookup failed with exit code \(process.terminationStatus).", group: .credentials)
+            throw .credentialsUnreadable("Keychain access failed")
         }
+
+        let data = output.fileHandleForReading.readDataToEndOfFile()
 
         do {
             let payload = try JSONDecoder().decode(Payload.self, from: data)

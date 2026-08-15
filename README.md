@@ -15,7 +15,8 @@ This is a personal project, not supported but shared (unlicensed) in case it's u
 
 Burndown reads the credentials the CLIs already store on your machine:
 
-- **Claude:** the `Claude Code-credentials` entry in your login Keychain
+- **Claude:** the `Claude Code-credentials` entry in your login Keychain, read through macOS's
+  Apple-signed `security` tool so Claude's token rotations do not cause recurring permission prompts
 - **Codex:** `~/.codex/auth.json`
 
 It only ever reads them. It never writes, refreshes, or rotates either credential — both providers rotate refresh tokens, so refreshing from a second process would invalidate the CLI's own session. If a token expires, Burndown says so and you re-authenticate with the CLI as usual.
