@@ -83,7 +83,7 @@ final class SampleStore {
                 )
                 self.samples.append(sample)
                 didChange = true
-                log.info("\(snapshot.provider.displayName) \(window.kind.displayName) window reset.", group: .store)
+                logger.info("\(snapshot.provider.displayName) \(window.kind.displayName) window reset.")
                 continue
             }
 
@@ -124,9 +124,9 @@ final class SampleStore {
         do {
             self.samples = try JSONDecoder().decode([UsageSample].self, from: data)
             self.prune()
-            log.debug("Loaded \(self.samples.count) samples.", group: .store)
+            logger.debug("Loaded \(self.samples.count) samples.")
         } catch {
-            log.warning("Discarding unreadable sample history: \(error.localizedDescription)", group: .store)
+            logger.warning("Discarding unreadable sample history: \(error.localizedDescription)")
         }
     }
 
@@ -140,7 +140,7 @@ final class SampleStore {
             do {
                 try data.write(to: url, options: .atomic)
             } catch {
-                log.error("Couldn't save sample history: \(error.localizedDescription)", group: .store)
+                logger.error("Couldn't save sample history: \(error.localizedDescription)")
             }
         }
     }

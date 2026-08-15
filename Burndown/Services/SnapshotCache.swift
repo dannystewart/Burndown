@@ -34,7 +34,7 @@ final class SnapshotCache {
         do {
             self.snapshots = try JSONDecoder().decode([Provider: UsageSnapshot].self, from: data)
         } catch {
-            log.warning("Discarding unreadable snapshot cache: \(error.localizedDescription)", group: .store)
+            logger.warning("Discarding unreadable snapshot cache: \(error.localizedDescription)")
         }
     }
 
@@ -47,7 +47,7 @@ final class SnapshotCache {
             do {
                 try data.write(to: url, options: .atomic)
             } catch {
-                log.error("Couldn't save snapshot cache: \(error.localizedDescription)", group: .store)
+                logger.error("Couldn't save snapshot cache: \(error.localizedDescription)")
             }
         }
     }

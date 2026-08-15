@@ -52,11 +52,11 @@ nonisolated enum UsageHTTP {
             break
 
         case 401, 403:
-            log.warning("\(provider.displayName) rejected the stored token.", group: .network)
+            logger.warning("\(provider.displayName) rejected the stored token.")
             throw .credentialsExpired
 
         case 429:
-            log.warning("\(provider.displayName) is throttling usage requests.", group: .network)
+            logger.warning("\(provider.displayName) is throttling usage requests.")
             throw .rateLimited
 
         default:
@@ -66,12 +66,11 @@ nonisolated enum UsageHTTP {
         do {
             return try self.decoder.decode(Response.self, from: data)
         } catch {
-            log.error(
+            logger.error(
                 """
                 Couldn't decode \(provider.displayName) usage: \(error)
                 Body: \(Self.excerpt(of: data))
                 """,
-                group: .network,
             )
             throw .malformedResponse("Unexpected response format")
         }
@@ -82,7 +81,7 @@ nonisolated enum UsageHTTP {
     /// The `DecodingError` alone can't distinguish a missing field from a body that was never JSON
     /// (an edge or proxy error page returned with a 200), and these failures are transient enough
     /// that they can't reliably be reproduced after the fact. Neither usage endpoint returns
-    /// credentials in its body, so the excerpt is safe to log.
+    /// credentials in its body, so the excerpt is safe to logger.
     private static func excerpt(of data: Data) -> String {
         guard !data.isEmpty else { return "<empty>" }
         guard let text = String(data: data, encoding: .utf8) else {

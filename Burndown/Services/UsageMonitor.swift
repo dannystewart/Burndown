@@ -93,7 +93,7 @@ final class UsageMonitor {
             }
             return .loaded(snapshot)
         } catch {
-            log.warning("Usage fetch failed: \(error.message)", group: .network)
+            logger.warning("Usage fetch failed: \(error.message)")
             return .failed(error)
         }
     }

@@ -46,7 +46,7 @@ nonisolated enum ClaudeCredentialStore {
 
         guard process.terminationStatus == 0 else {
             if process.terminationStatus == 44 { throw .notSignedIn }
-            log.warning("Keychain lookup failed with exit code \(process.terminationStatus).", group: .credentials)
+            logger.warning("Keychain lookup failed with exit code \(process.terminationStatus).")
             throw .credentialsUnreadable("Keychain access failed")
         }
 

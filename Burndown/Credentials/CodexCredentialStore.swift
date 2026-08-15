@@ -95,7 +95,7 @@ nonisolated enum CodexCredentialStore {
         do {
             data = try Data(contentsOf: url)
         } catch {
-            log.warning("Couldn't read auth.json: \(error.localizedDescription)", group: .credentials)
+            logger.warning("Couldn't read auth.json: \(error.localizedDescription)")
             throw .credentialsUnreadable("Can't read auth.json")
         }
 

@@ -22,7 +22,7 @@ enum LoginItem {
             }
             return true
         } catch {
-            log.error("Couldn't \(enabled ? "enable" : "disable") launch at login: \(error.localizedDescription)")
+            logger.error("Couldn't \(enabled ? "enable" : "disable") launch at login: \(error.localizedDescription)")
             return false
         }
     }

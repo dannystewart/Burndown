@@ -24,15 +24,4 @@ struct BurndownApp: App {
 
 // MARK: - Logger
 
-nonisolated let log: PolyLog = .init(appGroups: [
-    .credentials,
-    .network,
-    .store,
-
-], capture: true)
-
-extension LogGroup {
-    nonisolated static let credentials: LogGroup = .init("credentials", emoji: "🔑")
-    nonisolated static let network: LogGroup = .init("network", emoji: "🌐")
-    nonisolated static let store: LogGroup = .init("store", emoji: "💾")
-}
+nonisolated let logger: PolyLog = .init(capture: true)
