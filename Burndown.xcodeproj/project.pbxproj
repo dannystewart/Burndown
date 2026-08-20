@@ -9,8 +9,17 @@
 /* Begin PBXBuildFile section */
 		30C365B130178C1E00614271 /* BurndownIcon.icon in Resources */ = {isa = PBXBuildFile; fileRef = 30C365B030178C1E00614271 /* BurndownIcon.icon */; };
 		30C365FE3017E42000614271 /* PolyKit in Frameworks */ = {isa = PBXBuildFile; productRef = 30C365FD3017E42000614271 /* PolyKit */; };
-		AA0000000000000000000001 /* PolyKit in Frameworks */ = {isa = PBXBuildFile; productRef = AA0000000000000000000002 /* PolyKit */; };
 /* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		000000000000000150000000 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 000000000000000000000000 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 000000000000000100000000;
+			remoteInfo = Burndown;
+		};
+/* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
 		000000000000000000000120 /* Burndown.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Burndown.app; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -36,7 +45,6 @@
 		000000000000000130000000 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			files = (
-				AA0000000000000000000001 /* PolyKit in Frameworks */,
 				30C365FE3017E42000614271 /* PolyKit in Frameworks */,
 			);
 		};
@@ -86,7 +94,6 @@
 			);
 			name = Burndown;
 			packageProductDependencies = (
-				AA0000000000000000000002 /* PolyKit */,
 				30C365FD3017E42000614271 /* PolyKit */,
 			);
 			productName = Burndown;
@@ -182,16 +189,6 @@
 			);
 		};
 /* End PBXSourcesBuildPhase section */
-
-/* Begin PBXContainerItemProxy section */
-		000000000000000150000000 /* PBXContainerItemProxy */ = {
-			isa = PBXContainerItemProxy;
-			containerPortal = 000000000000000000000000 /* Project object */;
-			proxyType = 1;
-			remoteGlobalIDString = 000000000000000100000000;
-			remoteInfo = Burndown;
-		};
-/* End PBXContainerItemProxy section */
 
 /* Begin PBXTargetDependency section */
 		000000000000000151000000 /* PBXTargetDependency */ = {
@@ -343,7 +340,7 @@
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.developer-tools";
 				INFOPLIST_KEY_LSUIElement = YES;
 				LD_RUNPATH_SEARCH_PATHS = "@executable_path/../Frameworks";
-				MARKETING_VERSION = 1.1.1;
+				MARKETING_VERSION = 1.1.2;
 				PRODUCT_BUNDLE_IDENTIFIER = com.dannystewart.Burndown;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				REGISTER_APP_GROUPS = YES;
@@ -375,7 +372,7 @@
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.developer-tools";
 				INFOPLIST_KEY_LSUIElement = YES;
 				LD_RUNPATH_SEARCH_PATHS = "@executable_path/../Frameworks";
-				MARKETING_VERSION = 1.1.1;
+				MARKETING_VERSION = 1.1.2;
 				PRODUCT_BUNDLE_IDENTIFIER = com.dannystewart.Burndown;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				REGISTER_APP_GROUPS = YES;
@@ -466,10 +463,6 @@
 		30C365FD3017E42000614271 /* PolyKit */ = {
 			isa = XCSwiftPackageProductDependency;
 			package = 30C365FC3017E42000614271 /* XCRemoteSwiftPackageReference "polykit-swift" */;
-			productName = PolyKit;
-		};
-		AA0000000000000000000002 /* PolyKit */ = {
-			isa = XCSwiftPackageProductDependency;
 			productName = PolyKit;
 		};
 /* End XCSwiftPackageProductDependency section */

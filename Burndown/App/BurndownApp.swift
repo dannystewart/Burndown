@@ -16,9 +16,11 @@ struct BurndownApp: App {
         }
         .menuBarExtraStyle(.window)
 
+        // A menu-bar-only app needs Settings declared directly for openSettings to discover it.
         Settings {
             SettingsView(preferences: self.preferences, monitor: self.monitor)
         }
+        .windowResizability(.contentSize)
     }
 }
 
