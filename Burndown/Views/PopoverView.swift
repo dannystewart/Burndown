@@ -50,7 +50,7 @@ struct PopoverView: View {
             // popover exactly as tall as it needs to be — and scrolling only once it would outgrow
             // the screen, which four providers already can.
             ScrollView {
-                VStack(alignment: .leading, spacing: 14) {
+                VStack(alignment: .leading, spacing: 18) {
                     ForEach(self.monitor.visibleProviders) { provider in
                         ProviderSection(provider: provider, monitor: self.monitor)
                     }
@@ -65,6 +65,9 @@ struct PopoverView: View {
             FooterView(monitor: self.monitor)
         }
         .frame(width: 380)
+        // The system glass the menu bar window applies by default is too translucent to read over
+        // arbitrary wallpapers; a regular material is what the rest of the menu bar ecosystem uses.
+        .background(.regularMaterial)
         .task {
             await self.monitor.refreshForPopover()
         }
@@ -81,7 +84,7 @@ private struct ProviderSection: View {
     private var state: ProviderState { self.monitor.state(for: self.provider) }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
+        VStack(alignment: .leading, spacing: 5) {
             self.header
 
             switch self.state {
@@ -104,7 +107,7 @@ private struct ProviderSection: View {
     private var header: some View {
         HStack(spacing: 5) {
             Image(systemName: self.provider.symbolName)
-                .font(.system(size: 10, weight: .bold))
+                .font(.system(size: 13, weight: .bold))
                 .foregroundStyle(self.provider.tint)
             Text(self.provider.displayName)
                 .font(.system(size: 13, weight: .semibold))

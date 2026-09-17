@@ -70,7 +70,7 @@ struct BurndownChart: View {
                 )
                 .foregroundStyle(
                     .linearGradient(
-                        colors: [self.provider.tint.opacity(0.5), self.provider.tint.opacity(0.1)],
+                        colors: [self.provider.tint.opacity(0.35), self.provider.tint.opacity(0.02)],
                         startPoint: .top,
                         endPoint: .bottom,
                     ),
@@ -85,7 +85,7 @@ struct BurndownChart: View {
                     series: .value("Series", "observed"),
                 )
                 .foregroundStyle(self.provider.tint)
-                .lineStyle(.init(lineWidth: 1.5))
+                .lineStyle(.init(lineWidth: 2, lineCap: .round, lineJoin: .round))
                 .interpolationMethod(.monotone)
             }
 
