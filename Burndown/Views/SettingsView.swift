@@ -5,6 +5,7 @@ import SwiftUI
 struct SettingsView: View {
     private enum SettingsTab: Hashable {
         case general
+        case providers
         case about
     }
 
@@ -27,18 +28,21 @@ struct SettingsView: View {
     var body: some View {
         PolySettingsTabs(selection: self.$selectedTab) {
             PolySettingsTab("General", systemImage: "gearshape", tag: SettingsTab.general) {
-                self.generalSection
                 self.menuBarSection
+            }
+
+            PolySettingsTab("Providers", systemImage: "cpu", tag: SettingsTab.providers) {
                 self.providersSection
             }
 
             PolySettingsTab("About", systemImage: "info.circle", tag: SettingsTab.about) {
+                self.backgroundRecordingSection
                 PolyAboutView()
             }
         }
     }
 
-    private var generalSection: some View {
+    private var backgroundRecordingSection: some View {
         Section("Background Recording") {
             PolySettingsRow {
                 LabeledContent("Recorder") {
