@@ -1,9 +1,21 @@
 import PolyKit
 import SwiftUI
 
-// MARK: - BurndownApp
+// MARK: - BurndownEntryPoint
 
 @main
+nonisolated enum BurndownEntryPoint {
+    static func main() {
+        if ProcessInfo.processInfo.arguments.contains(AgentConstants.launchArgument) {
+            AgentRuntime.run()
+        } else {
+            BurndownApp.main()
+        }
+    }
+}
+
+// MARK: - BurndownApp
+
 struct BurndownApp: App {
     @State private var monitor: UsageMonitor = .init()
     @State private var preferences: Preferences = .shared

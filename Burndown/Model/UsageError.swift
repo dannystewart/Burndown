@@ -3,7 +3,7 @@ import Foundation
 /// Why a provider's usage couldn't be read.
 ///
 /// These map to what the user can actually do about it, not to HTTP status codes.
-nonisolated enum UsageError: Error, Sendable, Equatable {
+nonisolated enum UsageError: Error, Codable, Sendable, Equatable {
     /// No credentials on this machine — the CLI isn't installed, or was never signed in.
     case notSignedIn
     /// Credentials exist but the provider rejected them.

@@ -165,7 +165,7 @@ nonisolated struct MenuBarRow: Identifiable, Sendable {
     ) -> MenuBarRow {
         let paceWarning = Self.paceWindow(for: provider, in: monitor)
             .map { window in
-                let samples = monitor.store.series(for: provider, window: window)
+                let samples = monitor.series(for: provider, window: window)
                 return BurnAnalysis(window: window, samples: samples).willRunOutBeforeReset
             } ?? false
         return MenuBarRow(

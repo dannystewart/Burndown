@@ -5,10 +5,35 @@ import SwiftUI
 struct PopoverView: View {
     let monitor: UsageMonitor
 
+    private var recorderWarning: String? {
+        if self.monitor.connectionError != nil {
+            return "Background recording is unavailable"
+        }
+        switch self.monitor.backgroundStatus {
+        case .checking, .enabled:
+            return nil
+        case .requiresApproval:
+            return "Approve background recording in Settings"
+        case .unavailable:
+            return "Background recording is not running"
+        }
+    }
+
     var body: some View {
         // No ScrollView here: a menu bar window proposes no height, so a scroll view would accept
         // zero and collapse. The content is bounded at four cards, so it can size the window itself.
         VStack(spacing: 0) {
+            if let recorderWarning {
+                Label(recorderWarning, systemImage: "exclamationmark.triangle.fill")
+                    .font(.system(size: 10, weight: .medium))
+                    .foregroundStyle(.orange)
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 8)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .background(.orange.opacity(0.1))
+                Divider()
+            }
+
             VStack(alignment: .leading, spacing: 14) {
                 ForEach(self.monitor.visibleProviders) { provider in
                     ProviderSection(provider: provider, monitor: self.monitor)
@@ -54,7 +79,7 @@ private struct ProviderSection: View {
                         QuotaCard(
                             provider: self.provider,
                             window: window,
-                            samples: self.monitor.store.series(for: self.provider, window: window),
+                            samples: self.monitor.series(for: self.provider, window: window),
                         )
                     }
                 }
@@ -163,7 +188,7 @@ private struct FooterView: View {
                 Image(systemName: "power")
             }
             .buttonStyle(.borderless)
-            .help("Quit Burndown")
+            .help("Close Burndown")
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 8)

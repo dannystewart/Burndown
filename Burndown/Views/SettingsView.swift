@@ -2,21 +2,27 @@ import PolyKit
 import SwiftUI
 
 /// The settings window, opened from the popover's gear.
-///
-/// A real window rather than more controls crammed into the popover: the popover is for reading a
-/// number at a glance, and every row added to it competes with that. Settings are rare enough to
-/// live somewhere they can grow.
 struct SettingsView: View {
     private enum SettingsTab: Hashable {
         case general
         case about
     }
 
-    @State private var launchesAtLogin: Bool = LoginItem.isEnabled
     @State private var selectedTab: SettingsTab = .general
 
     let preferences: Preferences
     let monitor: UsageMonitor
+
+    private var recorderStatus: String {
+        if let connectionError = self.monitor.connectionError {
+            return "Unavailable: \(connectionError)"
+        }
+        return self.monitor.backgroundStatus.description
+    }
+
+    private var recorderStatusColor: Color {
+        self.monitor.backgroundStatus == .enabled && self.monitor.connectionError == nil ? .secondary : .orange
+    }
 
     var body: some View {
         PolySettingsTabs(selection: self.$selectedTab) {
@@ -33,15 +39,31 @@ struct SettingsView: View {
     }
 
     private var generalSection: some View {
-        Section("General") {
-            PolyToggleRow("Launch at Login", isOn: self.$launchesAtLogin)
-                .onChange(of: self.launchesAtLogin) { _, enabled in
-                    // The system is the source of truth here, not us: if registration is
-                    // refused, snap the toggle back to what actually happened.
-                    if !LoginItem.setEnabled(enabled) {
-                        self.launchesAtLogin = LoginItem.isEnabled
+        Section("Background Recording") {
+            PolySettingsRow {
+                LabeledContent("Recorder") {
+                    Text(self.recorderStatus)
+                        .foregroundStyle(self.recorderStatusColor)
+                }
+            }
+
+            if self.monitor.backgroundStatus.needsSystemSettings {
+                PolySettingsRow {
+                    Button {
+                        BackgroundService.openLoginItemsSettings()
+                    } label: {
+                        Label("Open Login Items Settings", systemImage: "gearshape")
                     }
                 }
+            } else if self.monitor.backgroundStatus != .enabled || self.monitor.connectionError != nil {
+                PolySettingsRow {
+                    Button {
+                        Task { await self.monitor.retryBackgroundService() }
+                    } label: {
+                        Label("Retry Background Recorder", systemImage: "arrow.clockwise")
+                    }
+                }
+            }
         }
     }
 

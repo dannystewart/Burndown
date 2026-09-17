@@ -21,7 +21,7 @@ nonisolated struct UsageSnapshot: Codable, Sendable, Hashable {
 // MARK: - ProviderState
 
 /// The result of the most recent attempt to read a provider.
-nonisolated enum ProviderState: Sendable {
+nonisolated enum ProviderState: Codable, Sendable, Equatable {
     case loading
     case loaded(UsageSnapshot)
     case failed(UsageError)

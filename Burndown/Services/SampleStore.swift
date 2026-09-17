@@ -15,43 +15,82 @@ nonisolated struct UsageSample: Codable, Sendable, Hashable {
     var remainingPercent: Double { (100 - self.usedPercent).clamped(to: 0 ... 100) }
 }
 
-// MARK: - SampleStore
+// MARK: - UsageRepository
 
-/// The recorded history that the burndown charts are drawn from.
+/// The agent's single-writer store for current snapshots and historical observations.
 ///
-/// Quota is a step function: it sits flat while you aren't working and jumps when you are. Storing
-/// every poll would mean thousands of identical rows for no extra fidelity, so a sample is kept
-/// only when the number actually moves, plus a periodic keyframe so long flat stretches still have
-/// points to draw between.
-@Observable
-@MainActor
-final class SampleStore {
+/// Snapshots and samples are committed in one atomic file replacement. That keeps the dashboard and
+/// its chart history at the same generation and guarantees that a successful record call has reached
+/// disk before the agent publishes it.
+actor UsageRepository {
+    private struct Archive: Codable {
+        var snapshots: [Provider: UsageSnapshot]
+        var samples: [UsageSample]
+    }
+
     /// How long a flat stretch can go before a point is recorded anyway.
     private static let keyframeInterval: TimeInterval = 15 * 60
-    /// History older than this is discarded — nothing in the UI looks back further than a week.
+    /// History older than this is discarded. Current charts do not look back further than a week.
     private static let retention: TimeInterval = 8 * 86400
     /// Smallest change worth recording, in percentage points.
     private static let significantChange: Double = 0.009
 
-    private(set) var samples: [UsageSample] = []
-
-    private let fileURL: URL
-    private var writeTask: Task<Void, Never>? = nil
-
-    init() {
-        let directory = URL.applicationSupportDirectory.appending(path: "Burndown", directoryHint: .isDirectory)
-        try? FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
-        self.fileURL = directory.appending(path: "samples.json", directoryHint: .notDirectory)
-        self.load()
+    private static var storageDirectory: URL {
+        URL.applicationSupportDirectory.appending(path: "Burndown", directoryHint: .isDirectory)
     }
 
-    /// Records whatever is new in a snapshot, and returns whether anything was stored.
-    @discardableResult
-    func record(_ snapshot: UsageSnapshot) -> Bool {
-        var didChange = false
+    private var archive: Archive
+    private let fileURL: URL
 
+    var snapshots: [Provider: UsageSnapshot] { self.archive.snapshots }
+    var samples: [UsageSample] { self.archive.samples }
+
+    init() {
+        let directory = Self.storageDirectory
+        do {
+            try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        } catch {
+            logger.error("Couldn't create usage storage: \(error.localizedDescription)")
+        }
+
+        self.fileURL = directory.appending(path: "usage-state.json", directoryHint: .notDirectory)
+        var archive = Self.loadArchive(from: directory)
+        Self.prune(&archive.samples)
+        self.archive = archive
+    }
+
+    /// Reads old on-disk state for the UI while the agent is unavailable or awaiting approval.
+    nonisolated static func cachedDashboard() -> AgentDashboard {
+        let archive = self.loadArchive(from: self.storageDirectory)
+        let states = Dictionary(uniqueKeysWithValues: archive.snapshots.map { ($0.key, ProviderState.loaded($0.value)) })
+        return AgentDashboard(
+            states: states,
+            samples: archive.samples,
+            refreshingProviders: [],
+            lastAttempts: [:],
+            generatedAt: .now,
+        )
+    }
+
+    private static func loadArchive(from directory: URL) -> Archive {
+        let archiveURL = directory.appending(path: "usage-state.json", directoryHint: .notDirectory)
+        if let data = try? Data(contentsOf: archiveURL), let archive = try? JSONDecoder().decode(Archive.self, from: data) {
+            return archive
+        }
+
+        // Migrate the two files written by versions before the recorder became a separate process.
+        let snapshotURL = directory.appending(path: "snapshots.json", directoryHint: .notDirectory)
+        let sampleURL = directory.appending(path: "samples.json", directoryHint: .notDirectory)
+        let snapshots = (try? Data(contentsOf: snapshotURL))
+            .flatMap { try? JSONDecoder().decode([Provider: UsageSnapshot].self, from: $0) } ?? [:]
+        let samples = (try? Data(contentsOf: sampleURL))
+            .flatMap { try? JSONDecoder().decode([UsageSample].self, from: $0) } ?? []
+        return Archive(snapshots: snapshots, samples: samples)
+    }
+
+    private static func appendSamples(from snapshot: UsageSnapshot, to samples: inout [UsageSample]) {
         for window in snapshot.windows {
-            let previous = self.samples.last { $0.provider == snapshot.provider && $0.kind == window.kind }
+            let previous = samples.last { $0.provider == snapshot.provider && $0.kind == window.kind }
             let sample = UsageSample(
                 provider: snapshot.provider,
                 kind: window.kind,
@@ -61,18 +100,13 @@ final class SampleStore {
             )
 
             guard let previous else {
-                self.samples.append(sample)
-                didChange = true
+                samples.append(sample)
                 continue
             }
 
             let isSamePeriod = abs(previous.resetsAt.timeIntervalSince(window.resetsAt)) < 120
-
             if !isSamePeriod {
-                // We watched this window roll over, so we know for certain it began empty. That
-                // anchor is only ever synthesized when the reset was actually observed — starting
-                // Burndown mid-window leaves the earlier part of the chart honestly blank.
-                self.samples.append(
+                samples.append(
                     UsageSample(
                         provider: snapshot.provider,
                         kind: window.kind,
@@ -81,67 +115,41 @@ final class SampleStore {
                         resetsAt: window.resetsAt,
                     ),
                 )
-                self.samples.append(sample)
-                didChange = true
+                samples.append(sample)
                 logger.info("\(snapshot.provider.displayName) \(window.kind.displayName) window reset.")
                 continue
             }
 
-            let moved = abs(sample.usedPercent - previous.usedPercent) >= Self.significantChange
-            let stale = sample.at.timeIntervalSince(previous.at) >= Self.keyframeInterval
-
+            let moved = abs(sample.usedPercent - previous.usedPercent) >= self.significantChange
+            let stale = sample.at.timeIntervalSince(previous.at) >= self.keyframeInterval
             if moved || stale {
-                self.samples.append(sample)
-                didChange = true
+                samples.append(sample)
             }
         }
-
-        if didChange {
-            self.prune()
-            self.persist()
-        }
-        return didChange
     }
 
-    /// The recorded history for the period the given window is currently in.
-    func series(for provider: Provider, window: QuotaWindow) -> [UsageSample] {
-        self.samples
-            .filter {
-                $0.provider == provider
-                    && $0.kind == window.kind
-                    && abs($0.resetsAt.timeIntervalSince(window.resetsAt)) < 120
-            }
-            .sorted { $0.at < $1.at }
+    private static func prune(_ samples: inout [UsageSample]) {
+        let cutoff = Date.now.addingTimeInterval(-self.retention)
+        samples.removeAll { $0.at < cutoff }
+    }
+
+    /// Records a provider reading and atomically commits it with any resulting history points.
+    func record(_ snapshot: UsageSnapshot) {
+        var next = self.archive
+        next.snapshots[snapshot.provider] = snapshot
+        Self.appendSamples(from: snapshot, to: &next.samples)
+        Self.prune(&next.samples)
+
+        do {
+            let data = try JSONEncoder().encode(next)
+            try data.write(to: self.fileURL, options: .atomic)
+            self.archive = next
+        } catch {
+            logger.error("Couldn't save usage state: \(error.localizedDescription)")
+        }
     }
 
     private func prune() {
-        let cutoff = Date.now.addingTimeInterval(-Self.retention)
-        self.samples.removeAll { $0.at < cutoff }
-    }
-
-    private func load() {
-        guard let data = try? Data(contentsOf: self.fileURL) else { return }
-        do {
-            self.samples = try JSONDecoder().decode([UsageSample].self, from: data)
-            self.prune()
-            logger.debug("Loaded \(self.samples.count) samples.")
-        } catch {
-            logger.warning("Discarding unreadable sample history: \(error.localizedDescription)")
-        }
-    }
-
-    /// Writes off the main actor, collapsing bursts so a run of quick polls writes once.
-    private func persist() {
-        guard let data = try? JSONEncoder().encode(self.samples) else { return }
-        let url = self.fileURL
-        self.writeTask?.cancel()
-        self.writeTask = Task.detached(priority: .background) {
-            guard !Task.isCancelled else { return }
-            do {
-                try data.write(to: url, options: .atomic)
-            } catch {
-                logger.error("Couldn't save sample history: \(error.localizedDescription)")
-            }
-        }
+        Self.prune(&self.archive.samples)
     }
 }
