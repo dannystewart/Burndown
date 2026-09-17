@@ -28,7 +28,7 @@ struct PopoverView: View {
     /// Measured against the screen rather than fixed, so the popover uses a large display without
     /// running off a laptop one.
     private var maximumContentHeight: CGFloat {
-        let visible = NSScreen.main?.visibleFrame.height ?? 800
+        let visible = NSScreen.main?.visibleFrame.height ?? 900
         return max(320, visible * 0.7)
     }
 
