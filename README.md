@@ -1,6 +1,6 @@
 # Burndown
 
-A macOS menu bar app that tracks how much of your Claude, Codex, Cursor, and OpenCode Go subscription quota you have left.
+A macOS menu bar app that tracks how much of your Claude, Codex, Cursor, OpenCode Go, and Ollama Cloud subscription quota you have left.
 
 Every provider exposes your current usage but no history, so Burndown polls every few minutes, records what it sees, and draws the burndown chart none of them give you: how fast you're going through a window, and whether you're on pace to run out before it resets.
 
@@ -24,12 +24,18 @@ Burndown reads the credentials the provider apps and CLIs already store on your 
   `~/Library/Application Support/Cursor/User/globalStorage/state.vscdb`, read with `sqlite3`. Cursor
   ships no CLI, so this is where its session lives; the same read picks up the plan name
 - **OpenCode Go:** the `opencode-go` key in `~/.local/share/opencode/auth.json`
+- **Ollama Cloud:** a session cookie you paste into Burndown's Providers settings. Ollama publishes
+  no quota API, so Burndown reads the logged-in `ollama.com/settings` page instead, and the session
+  cookie (`aid=…; __Secure-session=…`, copied from your browser's network tools) is the only way to
+  get there. This is the one credential Burndown stores itself — in its own defaults plist, not in
+  or next to any provider's store — and it is sent only to ollama.com. When Ollama invalidates the
+  session, the settings row says so and you paste a fresh cookie.
 
 A provider you haven't signed into is left out of the popover entirely rather than shown as an error, with a line in the footer noting its absence, so the window only lists what you actually use.
 
 It only ever reads them. It never writes, refreshes, or rotates any credential. Claude and Codex both rotate refresh tokens, so refreshing from a second process would invalidate the CLI's own session — and Burndown applies that rule to every provider rather than owning the credential lifecycle for some and not others. If a token expires, Burndown says so and you re-authenticate with that provider as usual.
 
-The access tokens go to the providers' own usage endpoints and nowhere else. There is no server, no telemetry, no analytics. What's stored locally, in `~/Library/Application Support/Burndown/`, is quota percentages and timestamps — never credentials:
+The access tokens go to the providers' own usage endpoints and nowhere else. There is no server, no telemetry, no analytics. What's stored locally, in `~/Library/Application Support/Burndown/`, is quota percentages and timestamps. The one credential Burndown persists itself is the Ollama session cookie, which lives in its own defaults plist under `~/Library/Preferences/`; nothing else stores credentials:
 
 - `usage-state.json` — the last reading from each provider, so a cold start has something to show, together with the usage history behind the charts, kept for 8 days
 

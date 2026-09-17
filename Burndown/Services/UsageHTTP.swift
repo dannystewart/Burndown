@@ -3,6 +3,15 @@ import PolyKit
 
 /// Shared request plumbing for the provider usage endpoints.
 nonisolated enum UsageHTTP {
+    /// The body and final URL of a text response.
+    nonisolated struct TextResponse: Sendable {
+        let text: String
+        /// Where the request actually landed. Providers that authenticate with browser cookies get
+        /// silently redirected to a sign-in page when the session expires, and the final URL is the
+        /// only reliable signal of that.
+        let finalURL: URL
+    }
+
     /// These are small, frequent polls, and a cached response would quietly show stale numbers.
     static let session: URLSession = {
         let config = URLSessionConfiguration.ephemeral
@@ -33,6 +42,37 @@ nonisolated enum UsageHTTP {
         as _: Response.Type,
         provider: Provider,
     ) async throws(UsageError) -> Response {
+        let (data, _) = try await self.send(request, provider: provider)
+
+        do {
+            return try self.decoder.decode(Response.self, from: data)
+        } catch {
+            logger.error(
+                """
+                Couldn't decode \(provider.displayName) usage: \(error)
+                Body: \(Self.excerpt(of: data))
+                """,
+            )
+            throw .malformedResponse("Unexpected response format")
+        }
+    }
+
+    /// Performs a request expecting a textual response, e.g. a page to scrape rather than JSON.
+    static func get(
+        _ request: URLRequest,
+        provider: Provider,
+    ) async throws(UsageError) -> TextResponse {
+        let (data, http) = try await self.send(request, provider: provider)
+        guard let text = String(data: data, encoding: .utf8) else {
+            throw .malformedResponse("Unexpected response format")
+        }
+        return TextResponse(text: text, finalURL: http.url ?? request.url ?? URL(fileURLWithPath: "/"))
+    }
+
+    private static func send(
+        _ request: URLRequest,
+        provider: Provider,
+    ) async throws(UsageError) -> (Data, HTTPURLResponse) {
         let data: Data
         let response: URLResponse
         do {
@@ -63,17 +103,7 @@ nonisolated enum UsageHTTP {
             throw .network("HTTP \(http.statusCode)")
         }
 
-        do {
-            return try self.decoder.decode(Response.self, from: data)
-        } catch {
-            logger.error(
-                """
-                Couldn't decode \(provider.displayName) usage: \(error)
-                Body: \(Self.excerpt(of: data))
-                """,
-            )
-            throw .malformedResponse("Unexpected response format")
-        }
+        return (data, http)
     }
 
     /// A short, printable prefix of a response body, for diagnosing decode failures.

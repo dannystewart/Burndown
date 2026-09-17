@@ -97,6 +97,8 @@ struct MenuBarLabel: View {
 
 /// One line of the menu bar label, before any decision about color has been made.
 nonisolated struct MenuBarRow: Identifiable, Sendable {
+    private static let maximumRows = 2
+
     let id: String
     let symbol: String
     let text: String
@@ -141,21 +143,38 @@ nonisolated struct MenuBarRow: Identifiable, Sendable {
     }
 
     /// One row per provider that's actually present, each showing its own soonest limit.
+    ///
+    /// The label tops out at two lines no matter how many providers are signed in, so when more
+    /// than two have data, the two whose limits would bite first win — that's what the redundant
+    /// rows would have been dropped for anyway.
     @MainActor
     private static func perProvider(from monitor: UsageMonitor, format: MenuBarFormat) -> [MenuBarRow] {
-        let rows = monitor.visibleProviders.compactMap { provider -> MenuBarRow? in
-            guard let window = monitor.soonestLimit(for: provider) else { return nil }
-            return Self.row(
-                id: provider.rawValue,
-                provider: provider,
-                window: window,
-                monitor: monitor,
-                format: format,
-            )
+        let candidates = monitor.visibleProviders.compactMap { provider -> (provider: Provider, window: QuotaWindow)? in
+            monitor.soonestLimit(for: provider).map { (provider, $0) }
         }
         // A machine with only one provider signed in gets a single line rather than a lopsided
         // pair.
-        return rows.isEmpty ? Self.single(from: monitor, format: format) : rows
+        if candidates.isEmpty { return Self.single(from: monitor, format: format) }
+        guard candidates.count > Self.maximumRows else {
+            return candidates.map { Self.row(id: $0.provider.rawValue, provider: $0.provider, window: $0.window, monitor: monitor, format: format) }
+        }
+
+        let urgent = candidates
+            .sorted {
+                BurnAnalysis.soonest(
+                    $0.window,
+                    samples: monitor.series(for: $0.provider, window: $0.window),
+                    than: $1.window,
+                    samples: monitor.series(for: $1.provider, window: $1.window),
+                )
+            }
+            .prefix(Self.maximumRows)
+            .map(\.provider)
+        let choice = Dictionary(uniqueKeysWithValues: urgent.enumerated().map { ($0.element.rawValue, $0.offset) })
+
+        return candidates
+            .filter { choice[$0.provider.rawValue] != nil }
+            .map { Self.row(id: $0.provider.rawValue, provider: $0.provider, window: $0.window, monitor: monitor, format: format) }
     }
 
     @MainActor

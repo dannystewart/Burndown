@@ -10,6 +10,7 @@ struct SettingsView: View {
     }
 
     @State private var selectedTab: SettingsTab = .general
+    @State private var ollamaCookie = ""
 
     let preferences: Preferences
     let monitor: UsageMonitor
@@ -111,6 +112,34 @@ struct SettingsView: View {
                         Text(self.status(of: provider))
                             .foregroundStyle(.secondary)
                     }
+                }
+
+                if provider == .ollamaCloud {
+                    PolySettingsRow {
+                        LabeledContent("Session Cookie") {
+                            HStack(spacing: 8) {
+                                SecureField("aid=…; __Secure-session=…", text: self.$ollamaCookie)
+                                    .textFieldStyle(.roundedBorder)
+                                    .frame(maxWidth: 260)
+
+                                Button("Save") {
+                                    OllamaCloudCredentialStore.save(self.ollamaCookie)
+                                    self.ollamaCookie = ""
+                                }
+                                .disabled(self.ollamaCookie.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+
+                                if OllamaCloudCredentialStore.isConfigured {
+                                    Button("Remove", role: .destructive) {
+                                        OllamaCloudCredentialStore.clear()
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    Text("Copy the Cookie header from ollama.com/settings in your browser and paste it here. Burndown only sends it to ollama.com.")
+                        .font(.callout)
+                        .foregroundStyle(.secondary)
                 }
             }
         }

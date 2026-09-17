@@ -78,6 +78,9 @@ extension Provider {
         // mode — icon, and the chart gradient with it. A mid slate reads on both appearances.
         case .cursor: Color(red: 0.55, green: 0.56, blue: 0.60)
         case .opencodeGo: Color(red: 0.45, green: 0.30, blue: 0.85)
+        // Ollama's own mark is monochrome, which would collide with Cursor's slate. The usage meters
+        // on ollama.com draw in #3b82f6, so the tint borrows that brand-adjacent blue instead.
+        case .ollamaCloud: Color(red: 0.23, green: 0.51, blue: 0.96)
         }
     }
 
@@ -87,6 +90,7 @@ extension Provider {
         case .codex: "chevron.left.forwardslash.chevron.right"
         case .cursor: "cursorarrow.rays"
         case .opencodeGo: "globe"
+        case .ollamaCloud: "teddybear.fill"
         }
     }
 }

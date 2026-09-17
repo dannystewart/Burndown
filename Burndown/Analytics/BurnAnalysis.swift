@@ -97,6 +97,10 @@ nonisolated struct BurnAnalysis: Sendable {
         // An already exhausted window is the limit being felt right now. Treating it as having no
         // projection would sort it behind a longer window that still has quota available.
         guard self.remainingPercent > 0 else { return 0 }
+        // A window in the critical zone is that limit being felt too, even while the observed burn
+        // is momentarily zero — a pause between requests is not headroom. It outranks every window
+        // with real runway left.
+        guard self.remainingPercent > QuotaWindow.criticalThreshold else { return 0 }
         guard let burnPerHour, burnPerHour > 0 else { return nil }
         return self.remainingPercent / burnPerHour
     }

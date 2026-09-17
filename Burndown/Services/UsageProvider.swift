@@ -22,6 +22,7 @@ final class UsageProviderRegistry: @unchecked Sendable {
         .codex: CodexUsageClient.fetch,
         .cursor: CursorUsageClient.fetch,
         .opencodeGo: OpenCodeGoUsageClient.fetch,
+        .ollamaCloud: OllamaCloudUsageClient.fetch,
     ]
 
     func fetcher(for provider: Provider) -> UsageProviderFetcher? {

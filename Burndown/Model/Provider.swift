@@ -6,6 +6,7 @@ nonisolated enum Provider: String, Codable, Sendable, CaseIterable, Identifiable
     case codex
     case cursor
     case opencodeGo = "opencode_go"
+    case ollamaCloud = "ollama_cloud"
 
     var id: String { self.rawValue }
 
@@ -15,6 +16,7 @@ nonisolated enum Provider: String, Codable, Sendable, CaseIterable, Identifiable
         case .claude: "Claude"
         case .cursor: "Cursor"
         case .opencodeGo: "OpenCode Go"
+        case .ollamaCloud: "Ollama Cloud"
         }
     }
 
