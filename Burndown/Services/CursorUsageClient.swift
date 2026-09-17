@@ -4,7 +4,8 @@ import Foundation
 ///
 /// Cursor serves `aiserver.v1.DashboardService` over Connect-RPC: a POST with an empty JSON body
 /// and a protocol-version header. The response describes one billing cycle, so Burndown reports a
-/// single window whose kind comes from the cycle's real length — a monthly plan lands as `.monthly`.
+/// single window whose kind comes from the cycle's real length — a monthly plan lands as
+/// `.monthly`.
 nonisolated enum CursorUsageClient {
     /// Cursor sends the billing cycle bounds as epoch milliseconds inside a JSON *string*
     /// (`"1791579489000"`), which the shared ISO-8601 date strategy can't read. Bare numbers are
@@ -82,8 +83,9 @@ nonisolated enum CursorUsageClient {
         }
 
         // All three metrics share the billing cycle, so they share a kind and reset time and are
-        // separated by label. Plan (overall spend) leads; auto and API follow, and are only included
-        // when the account reports them. The kind is derived once from the shared cycle length.
+        // separated by label. Plan (overall spend) leads; auto and API follow, and are only
+        // included when the account reports them. The kind is derived once from the shared cycle
+        // length.
         let kind = QuotaWindowKind(duration: duration)
         func window(_ label: String, _ used: Double?) -> QuotaWindow? {
             used.map {
@@ -114,9 +116,10 @@ nonisolated enum CursorUsageClient {
     /// Share of the cycle's included allowance already spent.
     ///
     /// Derived from spend rather than from the response's own `totalPercentUsed`, which tracks a
-    /// narrower auto-model figure: for an account 6% through its allowance, Cursor's dashboard reads
-    /// "you've used 6% of your included usage" while `totalPercentUsed` reports 0.72. Spend over the
-    /// limit is the number the user sees in Cursor, so it's the one the menu bar should agree with.
+    /// narrower auto-model figure: for an account 6% through its allowance, Cursor's dashboard
+    /// reads "you've used 6% of your included usage" while `totalPercentUsed` reports 0.72. Spend
+    /// over the limit is the number the user sees in Cursor, so it's the one the menu bar should
+    /// agree with.
     private static func percentUsed(_ usage: PlanUsage) -> Double? {
         if let limit = usage.limit, limit > 0 {
             let spent = usage.totalSpend ?? usage.remaining.map { limit - $0 }

@@ -1,21 +1,21 @@
 import Foundation
 import PolyKit
 
-/// Mirrors the background recorder's state into the menu app. Provider polling and disk writes never
-/// happen here, so closing this process has no effect on history collection.
+/// Mirrors the background recorder's state into the menu app. Provider polling and disk writes
+/// never happen here, so closing this process has no effect on history collection.
 @Observable
 @MainActor
 final class UsageMonitor {
     private static let synchronizationInterval: TimeInterval = 15
 
     private(set) var backgroundStatus: RecorderServiceStatus = .checking
-    private(set) var connectionError: String? = nil
+    private(set) var connectionError: String?
     private(set) var isRefreshing = false
 
     private var states: Dictionary = .init(uniqueKeysWithValues: Provider.allCases.map { ($0, ProviderState.loading) })
     private var samples: [UsageSample] = []
     private let client: AgentClient = .init()
-    private var synchronizationTask: Task<Void, Never>? = nil
+    private var synchronizationTask: Task<Void, Never>?
 
     var lastUpdated: Date? {
         self.visibleProviders.compactMap { self.state(for: $0).snapshot?.capturedAt }.min()
@@ -71,9 +71,9 @@ final class UsageMonitor {
 
     func series(for provider: Provider, window: QuotaWindow) -> [UsageSample] {
         // A fixed window's samples are grouped by shared reset time, so a new period starts a fresh
-        // series. A rolling window has no such boundary and its `resetsAt` slides between samples, so
-        // it's grouped by kind and bounded to the window's own span — the trailing five hours — which
-        // also keeps the chart from plotting points that fall outside its time axis.
+        // series. A rolling window has no such boundary and its `resetsAt` slides between samples,
+        // so it's grouped by kind and bounded to the window's own span — the trailing five hours —
+        // which also keeps the chart from plotting points that fall outside its time axis.
         let rolls = provider.windowRolls(window.kind)
         return self.samples
             .filter {

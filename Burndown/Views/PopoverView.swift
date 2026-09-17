@@ -22,7 +22,8 @@ struct PopoverView: View {
         }
     }
 
-    /// The tallest the scrolling region is allowed to get, leaving room for the footer and a margin.
+    /// The tallest the scrolling region is allowed to get, leaving room for the footer and a
+    /// margin.
     ///
     /// Measured against the screen rather than fixed, so the popover uses a large display without
     /// running off a laptop one.
@@ -44,10 +45,10 @@ struct PopoverView: View {
                 Divider()
             }
 
-            // A menu bar window proposes no height, so a scroll view left to size itself accepts zero
-            // and collapses. Measuring the content and pinning the frame to it keeps the popover
-            // exactly as tall as it needs to be — and scrolling only once it would outgrow the screen,
-            // which four providers already can.
+            // A menu bar window proposes no height, so a scroll view left to size itself accepts
+            // zero and collapses. Measuring the content and pinning the frame to it keeps the
+            // popover exactly as tall as it needs to be — and scrolling only once it would outgrow
+            // the screen, which four providers already can.
             ScrollView {
                 VStack(alignment: .leading, spacing: 14) {
                     ForEach(self.monitor.visibleProviders) { provider in
@@ -121,15 +122,15 @@ private struct ProviderSection: View {
 
     /// One window in full — with its chart — and the rest as a line each, shortest window first.
     ///
-    /// Only the session window earns the full card, because the five-hour chart is the only one whose
-    /// shape is worth the height; the weekly and monthly windows stay compact regardless. A provider
-    /// with no session window (Codex, Cursor) features its nearest limit instead, so it still leads
-    /// with a headline rather than a lone one-liner.
+    /// Only the session window earns the full card, because the five-hour chart is the only one
+    /// whose shape is worth the height; the weekly and monthly windows stay compact regardless. A
+    /// provider with no session window (Codex, Cursor) features its nearest limit instead, so it
+    /// still leads with a headline rather than a lone one-liner.
     ///
-    /// A rolling session window that isn't active — OpenCode Go's, while nothing has been used in the
-    /// last five hours — is dropped entirely rather than shown at 0%: its number is uninformative, its
-    /// reset time is meaningless, and it has no history to chart. It reappears, as the primary card,
-    /// the moment usage anchors it.
+    /// A rolling session window that isn't active — OpenCode Go's, while nothing has been used in
+    /// the last five hours — is dropped entirely rather than shown at 0%: its number is
+    /// uninformative, its reset time is meaningless, and it has no history to chart. It reappears,
+    /// as the primary card, the moment usage anchors it.
     @ViewBuilder
     private func windows(of snapshot: UsageSnapshot) -> some View {
         let ordered = snapshot.windows.sorted { $0.duration < $1.duration }
@@ -305,8 +306,8 @@ private struct FooterView: View {
     /// Accounts for a provider that isn't set up here.
     ///
     /// Absent providers are dropped from the list entirely rather than shown as errors, but saying
-    /// nothing at all would make it look like Burndown had quietly forgotten one. A line in the same
-    /// register as the rest of the footer answers the question without asking to be read.
+    /// nothing at all would make it look like Burndown had quietly forgotten one. A line in the
+    /// same register as the rest of the footer answers the question without asking to be read.
     @ViewBuilder
     private var absenceNote: some View {
         let missing = self.monitor.missingProviders

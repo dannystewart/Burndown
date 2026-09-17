@@ -104,8 +104,8 @@ struct BurndownChart: View {
         .chartYAxis {
             AxisMarks(values: [0.0, 50.0, 100.0]) { mark in
                 AxisGridLine().foregroundStyle(.quaternary)
-                // Anchored explicitly because the 0 and 100 marks sit on the plot's own edges.
-                // Left to itself Charts interpolates an anchor there to avoid clipping, then logs a
+                // Anchored explicitly because the 0 and 100 marks sit on the plot's own edges. Left
+                // to itself Charts interpolates an anchor there to avoid clipping, then logs a
                 // complaint that the value it computed isn't one of its named constants.
                 AxisValueLabel(anchor: .leading) {
                     Text(Format.percent(mark.as(Double.self) ?? 0))

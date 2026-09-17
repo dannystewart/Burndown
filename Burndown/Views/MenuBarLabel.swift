@@ -66,11 +66,12 @@ struct MenuBarLabel: View {
         return image
     }
 
-    /// Whether the image can stay a template, and therefore keep following the menu bar's own color.
+    /// Whether the image can stay a template, and therefore keep following the menu bar's own
+    /// color.
     ///
     /// Template-ness belongs to the whole image, not to individual glyphs, so a single warning row
-    /// forces the entire label out of template mode. Other rows then have to be drawn in an explicit
-    /// neutral color instead of inheriting one.
+    /// forces the entire label out of template mode. Other rows then have to be drawn in an
+    /// explicit neutral color instead of inheriting one.
     private func usesColor(for rows: [MenuBarRow]) -> Bool {
         switch self.preferences.menuBarColorMode {
         case .always: true
@@ -80,7 +81,8 @@ struct MenuBarLabel: View {
     }
 
     private func color(for row: MenuBarRow, colored: Bool) -> Color {
-        // A template image is used purely as a mask, so what it's filled with only has to be opaque.
+        // A template image is used purely as a mask, so what it's filled with only has to be
+        // opaque.
         guard colored else { return .black }
         // In "when low" the point is that color marks the exception; anything that isn't warning
         // should read as though it were still following the menu bar.
@@ -151,7 +153,8 @@ nonisolated struct MenuBarRow: Identifiable, Sendable {
                 format: format,
             )
         }
-        // A machine with only one provider signed in gets a single line rather than a lopsided pair.
+        // A machine with only one provider signed in gets a single line rather than a lopsided
+        // pair.
         return rows.isEmpty ? Self.single(from: monitor, format: format) : rows
     }
 

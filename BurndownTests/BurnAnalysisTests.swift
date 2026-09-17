@@ -1,14 +1,13 @@
+@testable import Burndown
 import Foundation
 import Testing
-
-@testable import Burndown
 
 struct BurnAnalysisTests {
     @Test(arguments: [
         (QuotaWindowKind.session, 5 * 3600.0, 5.0),
         (QuotaWindowKind.weekly, 7 * 86400.0, 1.0),
     ])
-    func openingUsageDoesNotCreateAProjection(kind: QuotaWindowKind, duration: TimeInterval, used: Double) {
+    func `opening usage does not create A projection`(kind: QuotaWindowKind, duration: TimeInterval, used: Double) {
         let now = Date(timeIntervalSinceReferenceDate: 1_000_000)
         let window = QuotaWindow(kind: kind, usedPercent: used, resetsAt: now.addingTimeInterval(duration), duration: duration)
         let openingReading = self.sample(for: window, at: now, used: used)
@@ -20,7 +19,7 @@ struct BurnAnalysisTests {
     }
 
     @Test
-    func continuedUsageCanCreateExhaustionWarning() {
+    func `continued usage can create exhaustion warning`() {
         let startedAt = Date(timeIntervalSinceReferenceDate: 1_000_000)
         let duration = 5 * 3600.0
         let window = QuotaWindow(
@@ -41,7 +40,7 @@ struct BurnAnalysisTests {
     }
 
     @Test
-    func synthesizedResetAnchorIsNotTreatedAsObservedConsumption() {
+    func `synthesized reset anchor is not treated as observed consumption`() {
         let startedAt = Date(timeIntervalSinceReferenceDate: 1_000_000)
         let duration = 7 * 86400.0
         let window = QuotaWindow(
@@ -62,7 +61,7 @@ struct BurnAnalysisTests {
     }
 
     @Test
-    func earlyWeeklyBurstDoesNotAssumeContinuousActivity() {
+    func `early weekly burst does not assume continuous activity`() {
         let startedAt = Date(timeIntervalSinceReferenceDate: 1_000_000)
         let duration = 7 * 86400.0
         let baselineAt = startedAt.addingTimeInterval(24 * 3600)
@@ -84,7 +83,7 @@ struct BurnAnalysisTests {
     }
 
     @Test
-    func fullDayOfWeeklyHistoryCanStillCreateExhaustionWarning() {
+    func `full day of weekly history can still create exhaustion warning`() {
         let startedAt = Date(timeIntervalSinceReferenceDate: 1_000_000)
         let duration = 7 * 86400.0
         let latestAt = startedAt.addingTimeInterval(24 * 3600)

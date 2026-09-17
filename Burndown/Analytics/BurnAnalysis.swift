@@ -44,9 +44,9 @@ nonisolated struct BurnAnalysis: Sendable {
             let activityAdjustment = activeDayFraction + (1 - activeDayFraction) * dayCoverage
             let activityAdjustedRate = observedRate * activityAdjustment
 
-            // A burst seen for only an hour or two is weak evidence that the same workload will recur
-            // every day. Regularize high early rates toward spending the full allowance evenly, without
-            // inflating observations that are already below that pace.
+            // A burst seen for only an hour or two is weak evidence that the same workload will
+            // recur every day. Regularize high early rates toward spending the full allowance
+            // evenly, without inflating observations that are already below that pace.
             let sustainableRate = 100 / (self.window.duration / 3600)
             guard activityAdjustedRate > sustainableRate else { return activityAdjustedRate }
             return sustainableRate + (activityAdjustedRate - sustainableRate) * dayCoverage
@@ -136,9 +136,9 @@ nonisolated struct BurnAnalysis: Sendable {
     /// Whether `lhs` is the limit you'd feel first.
     ///
     /// Ranked by projected time to empty rather than by percentage left, because the two disagree
-    /// often enough to matter: a weekly window sitting at 20% with five days to run is less pressing
-    /// than a five-hour window at 40% being burned through in an afternoon. Windows with no
-    /// measurable burn sort last — nothing is imminent if nothing is moving — and ties fall to
+    /// often enough to matter: a weekly window sitting at 20% with five days to run is less
+    /// pressing than a five-hour window at 40% being burned through in an afternoon. Windows with
+    /// no measurable burn sort last — nothing is imminent if nothing is moving — and ties fall to
     /// whichever has less headroom.
     static func soonest(
         _ lhs: QuotaWindow,

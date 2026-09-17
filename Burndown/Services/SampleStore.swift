@@ -11,8 +11,8 @@ nonisolated struct UsageSample: Codable, Sendable, Hashable {
     let usedPercent: Double
     /// Identifies which window period this belongs to, so a reset starts a fresh series.
     let resetsAt: Date
-    /// Matches the source window's label, so metrics that share a kind (Cursor's plan/auto/API) keep
-    /// separate series. Nil for single-metric windows.
+    /// Matches the source window's label, so metrics that share a kind (Cursor's plan/auto/API)
+    /// keep separate series. Nil for single-metric windows.
     let label: String?
 
     var remainingPercent: Double { (100 - self.usedPercent).clamped(to: 0 ... 100) }
@@ -32,8 +32,8 @@ nonisolated struct UsageSample: Codable, Sendable, Hashable {
 /// The agent's single-writer store for current snapshots and historical observations.
 ///
 /// Snapshots and samples are committed in one atomic file replacement. That keeps the dashboard and
-/// its chart history at the same generation and guarantees that a successful record call has reached
-/// disk before the agent publishes it.
+/// its chart history at the same generation and guarantees that a successful record call has
+/// reached disk before the agent publishes it.
 actor UsageRepository {
     private struct Archive: Codable {
         var snapshots: [Provider: UsageSnapshot]
@@ -119,10 +119,11 @@ actor UsageRepository {
                 continue
             }
 
-            // A rolling window has no fixed reset boundary — `resetsAt` slides as usage ages out and,
-            // while idle, creeps forward every poll. It is one continuous series with no periods to
-            // separate, so the synthetic zero-anchor sawtooth below (which keys off `resetsAt`) would
-            // fire on every poll and fill the history with noise. Record its curve directly instead.
+            // A rolling window has no fixed reset boundary — `resetsAt` slides as usage ages out
+            // and, while idle, creeps forward every poll. It is one continuous series with no
+            // periods to separate, so the synthetic zero-anchor sawtooth below (which keys off
+            // `resetsAt`) would fire on every poll and fill the history with noise. Record its
+            // curve directly instead.
             if !snapshot.provider.windowRolls(window.kind) {
                 let isSamePeriod = abs(previous.resetsAt.timeIntervalSince(window.resetsAt)) < 120
                 if !isSamePeriod {

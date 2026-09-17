@@ -63,10 +63,11 @@ enum BackgroundService {
             return .unavailable("Recorder is missing from this app build")
         }
 
-        // Registration runs on every launch rather than only when the status looks unregistered.
-        // It is idempotent, and the status is not trustworthy on its own: if the launchd job is
+        // Registration runs on every launch rather than only when the status looks unregistered. It
+        // is idempotent, and the status is not trustworthy on its own: if the launchd job is
         // removed out from under it, the service still reports `.enabled` while the mach service is
-        // gone, and the recorder can never come back. Re-registering resubmits the job in that case.
+        // gone, and the recorder can never come back. Re-registering resubmits the job in that
+        // case.
         if self.service.status != .requiresApproval {
             do {
                 try self.service.register()

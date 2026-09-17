@@ -57,9 +57,10 @@ nonisolated struct QuotaWindow: Codable, Sendable, Hashable, Identifiable {
     /// Distinguishes windows that share a kind within one provider.
     ///
     /// Most providers report one window per kind, so the kind alone identifies it. Cursor reports
-    /// several metrics — plan spend, auto-model usage, API usage — that all live in the same monthly
-    /// billing cycle, so they'd otherwise collide on kind. The label separates them for identity,
-    /// grouping, and display; it's nil for single-metric windows, which show their kind's name.
+    /// several metrics — plan spend, auto-model usage, API usage — that all live in the same
+    /// monthly billing cycle, so they'd otherwise collide on kind. The label separates them for
+    /// identity, grouping, and display; it's nil for single-metric windows, which show their kind's
+    /// name.
     let label: String?
 
     var id: String { self.label.map { "\(self.kind.rawValue)#\($0)" } ?? self.kind.rawValue }

@@ -76,8 +76,8 @@ nonisolated enum MenuBarFormat: String, CaseIterable, Identifiable, Sendable {
 /// When the menu bar is allowed to use color.
 nonisolated enum MenuBarColorMode: String, CaseIterable, Identifiable, Sendable {
     case always
-    /// Color only once a window crosses into warning or critical territory, so color in the menu bar
-    /// means something rather than just being decoration.
+    /// Color only once a window crosses into warning or critical territory, so color in the menu
+    /// bar means something rather than just being decoration.
     case whenLow
     case never
 
