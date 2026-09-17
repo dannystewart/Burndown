@@ -70,11 +70,17 @@ final class UsageMonitor {
     }
 
     func series(for provider: Provider, window: QuotaWindow) -> [UsageSample] {
-        self.samples
+        // A fixed window's samples are grouped by shared reset time, so a new period starts a fresh
+        // series. A rolling window has no such boundary and its `resetsAt` slides between samples, so
+        // it's grouped by kind and bounded to the window's own span — the trailing five hours — which
+        // also keeps the chart from plotting points that fall outside its time axis.
+        let rolls = provider.windowRolls(window.kind)
+        return self.samples
             .filter {
-                $0.provider == provider
-                    && $0.kind == window.kind
-                    && abs($0.resetsAt.timeIntervalSince(window.resetsAt)) < 120
+                guard $0.provider == provider, $0.kind == window.kind else { return false }
+                return rolls
+                    ? $0.at >= window.startedAt
+                    : abs($0.resetsAt.timeIntervalSince(window.resetsAt)) < 120
             }
             .sorted { $0.at < $1.at }
     }

@@ -19,11 +19,11 @@ actor UsageRecorder {
     }
 
     private nonisolated static func load(_ provider: Provider) async -> ProviderState {
+        guard let fetcher = UsageProviderRegistry.shared.fetcher(for: provider) else {
+            return .failed(.credentialsUnreadable("No client registered for \(provider.displayName)"))
+        }
         do {
-            let snapshot = switch provider {
-            case .claude: try await ClaudeUsageClient.fetch()
-            case .codex: try await CodexUsageClient.fetch()
-            }
+            let snapshot = try await fetcher()
             return .loaded(snapshot)
         } catch {
             logger.warning("Usage fetch failed: \(error.message)")

@@ -15,10 +15,16 @@ struct BurndownChart: View {
     let analysis: BurnAnalysis
 
     /// Observed history, extended to the present so the line meets the projection.
+    ///
+    /// The extension stops at the reset. If polling stalls, the snapshot on screen can outlive the
+    /// window it describes, and a point at the true present would sit beyond the chart's domain —
+    /// which Charts renders outside the plot area rather than dropping, spilling the series across
+    /// the rest of the popover.
     private var observed: [Point] {
         var points = self.samples.map { (date: $0.at, remaining: $0.remainingPercent) }
-        if let last = points.last, last.date < self.analysis.now {
-            points.append((self.analysis.now, self.window.remainingPercent))
+        let latest = min(self.analysis.now, self.window.resetsAt)
+        if let last = points.last, last.date < latest {
+            points.append((latest, self.window.remainingPercent))
         }
         return points.enumerated().map { Point(id: $0.offset, date: $0.element.date, remaining: $0.element.remaining) }
     }
@@ -42,7 +48,7 @@ struct BurndownChart: View {
     private var xAxisFormat: Date.FormatStyle {
         switch self.window.kind {
         case .session: .dateTime.hour().minute()
-        case .weekly: .dateTime.weekday(.abbreviated)
+        case .weekly, .monthly: .dateTime.weekday(.abbreviated)
         }
     }
 
@@ -51,6 +57,7 @@ struct BurndownChart: View {
         switch self.window.kind {
         case .session: .automatic(desiredCount: 3)
         case .weekly: .stride(by: .day, count: 2)
+        case .monthly: .stride(by: .day, count: 5)
         }
     }
 

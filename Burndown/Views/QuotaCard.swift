@@ -19,15 +19,20 @@ struct QuotaCard: View {
             self.headline
             self.bar
 
-            if self.samples.count >= 2 {
-                BurndownChart(
-                    provider: self.provider,
-                    window: self.window,
-                    samples: self.samples,
-                    analysis: self.analysis,
-                )
-            } else {
-                self.awaitingHistory
+            // Only session windows get a chart. Over a week or a month the line is close to flat at
+            // this scale, so the plot restates the bar above it and the summary below it for 76pt;
+            // across five hours the shape is the whole point, showing whether a burst has stopped.
+            if self.window.kind == .session {
+                if self.samples.count >= 2 {
+                    BurndownChart(
+                        provider: self.provider,
+                        window: self.window,
+                        samples: self.samples,
+                        analysis: self.analysis,
+                    )
+                } else {
+                    self.awaitingHistory
+                }
             }
 
             self.summary

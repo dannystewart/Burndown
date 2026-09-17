@@ -57,6 +57,8 @@ nonisolated enum UsageError: Error, Codable, Sendable, Equatable {
             switch provider {
             case .claude: "Run `claude` and sign in"
             case .codex: "Run `codex login`"
+            case .cursor: "Sign in to Cursor and try again"
+            case .opencodeGo: "Sign in at opencode.ai and try again"
             }
 
         case .credentialsUnreadable, .network, .malformedResponse, .rateLimited:

@@ -3,6 +3,9 @@ import SwiftUI
 // MARK: - PopoverView
 
 struct PopoverView: View {
+    /// The measured height of the scrolling content, which the frame below is pinned to.
+    @State private var contentHeight: CGFloat = 0
+
     let monitor: UsageMonitor
 
     private var recorderWarning: String? {
@@ -19,9 +22,16 @@ struct PopoverView: View {
         }
     }
 
+    /// The tallest the scrolling region is allowed to get, leaving room for the footer and a margin.
+    ///
+    /// Measured against the screen rather than fixed, so the popover uses a large display without
+    /// running off a laptop one.
+    private var maximumContentHeight: CGFloat {
+        let visible = NSScreen.main?.visibleFrame.height ?? 800
+        return max(320, visible * 0.7)
+    }
+
     var body: some View {
-        // No ScrollView here: a menu bar window proposes no height, so a scroll view would accept
-        // zero and collapse. The content is bounded at four cards, so it can size the window itself.
         VStack(spacing: 0) {
             if let recorderWarning {
                 Label(recorderWarning, systemImage: "exclamationmark.triangle.fill")
@@ -34,12 +44,21 @@ struct PopoverView: View {
                 Divider()
             }
 
-            VStack(alignment: .leading, spacing: 14) {
-                ForEach(self.monitor.visibleProviders) { provider in
-                    ProviderSection(provider: provider, monitor: self.monitor)
+            // A menu bar window proposes no height, so a scroll view left to size itself accepts zero
+            // and collapses. Measuring the content and pinning the frame to it keeps the popover
+            // exactly as tall as it needs to be — and scrolling only once it would outgrow the screen,
+            // which four providers already can.
+            ScrollView {
+                VStack(alignment: .leading, spacing: 14) {
+                    ForEach(self.monitor.visibleProviders) { provider in
+                        ProviderSection(provider: provider, monitor: self.monitor)
+                    }
                 }
+                .padding(12)
+                .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { self.contentHeight = $0 }
             }
-            .padding(12)
+            .frame(height: min(self.contentHeight, self.maximumContentHeight))
+            .scrollBounceBehavior(.basedOnSize)
 
             Divider()
             FooterView(monitor: self.monitor)
@@ -75,13 +94,7 @@ private struct ProviderSection: View {
                 if snapshot.windows.isEmpty {
                     self.note("No quota windows reported")
                 } else {
-                    ForEach(snapshot.windows) { window in
-                        QuotaCard(
-                            provider: self.provider,
-                            window: window,
-                            samples: self.monitor.series(for: self.provider, window: window),
-                        )
-                    }
+                    self.windows(of: snapshot)
                 }
             }
         }
@@ -103,6 +116,45 @@ private struct ProviderSection: View {
                     .background(.quaternary, in: .capsule)
             }
             Spacer()
+        }
+    }
+
+    /// One window in full — with its chart — and the rest as a line each, shortest window first.
+    ///
+    /// Only the session window earns the full card, because the five-hour chart is the only one whose
+    /// shape is worth the height; the weekly and monthly windows stay compact regardless. A provider
+    /// with no session window (Codex, Cursor) features its nearest limit instead, so it still leads
+    /// with a headline rather than a lone one-liner.
+    ///
+    /// A rolling session window that isn't active — OpenCode Go's, while nothing has been used in the
+    /// last five hours — is dropped entirely rather than shown at 0%: its number is uninformative, its
+    /// reset time is meaningless, and it has no history to chart. It reappears, as the primary card,
+    /// the moment usage anchors it.
+    @ViewBuilder
+    private func windows(of snapshot: UsageSnapshot) -> some View {
+        let ordered = snapshot.windows.sorted { $0.duration < $1.duration }
+        let session = ordered.first { $0.kind == .session }
+        let sessionActive = session.map(self.isActive) ?? false
+        let hasSession = session != nil
+
+        let featured: QuotaWindow? = if let session, sessionActive {
+            session
+        } else if hasSession {
+            nil // A session exists but is idle: no full card, only the compact rows below.
+        } else {
+            self.monitor.soonestLimit(for: self.provider) ?? ordered.first
+        }
+
+        if let featured {
+            QuotaCard(
+                provider: self.provider,
+                window: featured,
+                samples: self.monitor.series(for: self.provider, window: featured),
+            )
+        }
+
+        ForEach(ordered.filter { self.isCompact($0, featured: featured, sessionActive: sessionActive) }) { window in
+            CompactWindowRow(window: window)
         }
     }
 
@@ -130,6 +182,60 @@ private struct ProviderSection: View {
         .padding(10)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(.quaternary.opacity(0.35), in: .rect(cornerRadius: 8))
+    }
+
+    /// A rolling window is only worth showing once usage has anchored it; a fixed window always is.
+    private func isActive(_ window: QuotaWindow) -> Bool {
+        if self.provider.windowRolls(window.kind) {
+            return window.usedPercent > 0
+        }
+        return true
+    }
+
+    /// Every window except the featured one gets a compact row — but an inactive session window is
+    /// hidden outright rather than demoted to a row.
+    private func isCompact(_ window: QuotaWindow, featured: QuotaWindow?, sessionActive: Bool) -> Bool {
+        if window.id == featured?.id { return false }
+        if window.kind == .session, !sessionActive { return false }
+        return true
+    }
+}
+
+// MARK: - CompactWindowRow
+
+/// A secondary window in one line: how much is left, and when it comes back.
+///
+/// Deliberately not a shrunken `QuotaCard`. The card exists to answer whether the current pace is a
+/// problem, which takes a chart and a projection; a window that isn't the nearest limit only has to
+/// confirm it isn't in trouble, and the severity color does most of that before the text is read.
+private struct CompactWindowRow: View {
+    let window: QuotaWindow
+
+    var body: some View {
+        HStack(spacing: 6) {
+            Text(self.window.kind.displayName.uppercased())
+                .font(.system(size: 9, weight: .semibold))
+                .foregroundStyle(Color.mutedText)
+                .tracking(0.6)
+
+            Text(Format.percent(self.window.remainingPercent))
+                .font(.system(size: 11, weight: .semibold))
+                .monospacedDigit()
+                .foregroundStyle(self.window.severityColor)
+
+            Spacer(minLength: 8)
+
+            // Matches the card's countdown cadence so the two never disagree on screen.
+            TimelineView(.periodic(from: .now, by: 15)) { context in
+                Text("Resets in \(Format.duration(self.window.resetsAt.timeIntervalSince(context.date)))")
+                    .font(.system(size: 9))
+                    .foregroundStyle(Color.mutedText)
+                    .monospacedDigit()
+            }
+        }
+        .padding(.horizontal, 10)
+        .padding(.vertical, 6)
+        .background(.quaternary.opacity(0.2), in: .rect(cornerRadius: 6))
     }
 }
 

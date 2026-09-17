@@ -49,7 +49,7 @@ nonisolated enum Format {
 
         return switch kind {
         case .session: hours > 0 ? "\(hours)h \(minutes)m" : "\(minutes)m"
-        case .weekly: days > 0 || hours > 0 ? "\(days)d \(hours)h" : "0d \(minutes)m"
+        case .weekly, .monthly: days > 0 || hours > 0 ? "\(days)d \(hours)h" : "0d \(minutes)m"
         }
     }
 
@@ -69,11 +69,15 @@ nonisolated enum Format {
 }
 
 extension Provider {
-    /// Distinguishes the two providers' charts at a glance.
+    /// Distinguishes the providers' charts at a glance.
     var tint: Color {
         switch self {
         case .claude: Color(red: 0.85, green: 0.47, blue: 0.34)
         case .codex: Color(red: 0.35, green: 0.62, blue: 0.95)
+        // Cursor's mark is monochrome, but a true near-black disappears against the popover in dark
+        // mode — icon, and the chart gradient with it. A mid slate reads on both appearances.
+        case .cursor: Color(red: 0.55, green: 0.56, blue: 0.60)
+        case .opencodeGo: Color(red: 0.45, green: 0.30, blue: 0.85)
         }
     }
 
@@ -81,6 +85,8 @@ extension Provider {
         switch self {
         case .claude: "asterisk"
         case .codex: "chevron.left.forwardslash.chevron.right"
+        case .cursor: "cursorarrow.rays"
+        case .opencodeGo: "globe"
         }
     }
 }

@@ -104,20 +104,26 @@ actor UsageRepository {
                 continue
             }
 
-            let isSamePeriod = abs(previous.resetsAt.timeIntervalSince(window.resetsAt)) < 120
-            if !isSamePeriod {
-                samples.append(
-                    UsageSample(
-                        provider: snapshot.provider,
-                        kind: window.kind,
-                        at: window.startedAt,
-                        usedPercent: 0,
-                        resetsAt: window.resetsAt,
-                    ),
-                )
-                samples.append(sample)
-                logger.info("\(snapshot.provider.displayName) \(window.kind.displayName) window reset.")
-                continue
+            // A rolling window has no fixed reset boundary — `resetsAt` slides as usage ages out and,
+            // while idle, creeps forward every poll. It is one continuous series with no periods to
+            // separate, so the synthetic zero-anchor sawtooth below (which keys off `resetsAt`) would
+            // fire on every poll and fill the history with noise. Record its curve directly instead.
+            if !snapshot.provider.windowRolls(window.kind) {
+                let isSamePeriod = abs(previous.resetsAt.timeIntervalSince(window.resetsAt)) < 120
+                if !isSamePeriod {
+                    samples.append(
+                        UsageSample(
+                            provider: snapshot.provider,
+                            kind: window.kind,
+                            at: window.startedAt,
+                            usedPercent: 0,
+                            resetsAt: window.resetsAt,
+                        ),
+                    )
+                    samples.append(sample)
+                    logger.info("\(snapshot.provider.displayName) \(window.kind.displayName) window reset.")
+                    continue
+                }
             }
 
             let moved = abs(sample.usedPercent - previous.usedPercent) >= self.significantChange

@@ -13,6 +13,8 @@ nonisolated enum QuotaWindowKind: String, Codable, Sendable, CaseIterable, Ident
     case session
     /// A long rolling window, nominally seven days.
     case weekly
+    /// A multi-week rolling window, nominally thirty days.
+    case monthly
 
     var id: String { self.rawValue }
 
@@ -20,6 +22,7 @@ nonisolated enum QuotaWindowKind: String, Codable, Sendable, CaseIterable, Ident
         switch self {
         case .session: "5-Hour"
         case .weekly: "7-Day"
+        case .monthly: "30-Day"
         }
     }
 
@@ -27,13 +30,16 @@ nonisolated enum QuotaWindowKind: String, Codable, Sendable, CaseIterable, Ident
     var burnRateUnit: BurnRateUnit {
         switch self {
         case .session: .perHour
-        case .weekly: .perDay
+        case .weekly, .monthly: .perDay
         }
     }
 
-    /// Classifies a window by its length. Anything up to a day is treated as a session window.
+    /// Classifies a window by its length. Up to a day is a session window, up to a week is weekly,
+    /// and anything longer is treated as monthly.
     init(duration: TimeInterval) {
-        self = duration <= 86400 ? .session : .weekly
+        if duration <= 86400 { self = .session }
+        else if duration <= 7 * 86400 { self = .weekly }
+        else { self = .monthly }
     }
 }
 
