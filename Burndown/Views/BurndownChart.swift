@@ -125,6 +125,6 @@ struct BurndownChart: View {
                 }
             }
         }
-        .frame(height: 76)
+        .frame(height: 60)
     }
 }

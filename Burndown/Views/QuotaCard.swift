@@ -52,7 +52,7 @@ struct QuotaCard: View {
 
     private var header: some View {
         HStack {
-            Text(self.window.kind.displayName.uppercased())
+            Text(self.window.displayName.uppercased())
                 .font(.system(size: 9, weight: .semibold))
                 .foregroundStyle(Color.mutedText)
                 .tracking(0.6)
@@ -95,7 +95,7 @@ struct QuotaCard: View {
         }
         .font(.system(size: 9))
         .foregroundStyle(Color.mutedText)
-        .frame(height: 76, alignment: .center)
+        .frame(height: 60, alignment: .center)
     }
 
     /// How fast the quota is going, then whether that's a problem.

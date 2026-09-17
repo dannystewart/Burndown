@@ -11,8 +11,20 @@ nonisolated struct UsageSample: Codable, Sendable, Hashable {
     let usedPercent: Double
     /// Identifies which window period this belongs to, so a reset starts a fresh series.
     let resetsAt: Date
+    /// Matches the source window's label, so metrics that share a kind (Cursor's plan/auto/API) keep
+    /// separate series. Nil for single-metric windows.
+    let label: String?
 
     var remainingPercent: Double { (100 - self.usedPercent).clamped(to: 0 ... 100) }
+
+    init(provider: Provider, kind: QuotaWindowKind, at: Date, usedPercent: Double, resetsAt: Date, label: String? = nil) {
+        self.provider = provider
+        self.kind = kind
+        self.at = at
+        self.usedPercent = usedPercent
+        self.resetsAt = resetsAt
+        self.label = label
+    }
 }
 
 // MARK: - UsageRepository
@@ -90,13 +102,16 @@ actor UsageRepository {
 
     private static func appendSamples(from snapshot: UsageSnapshot, to samples: inout [UsageSample]) {
         for window in snapshot.windows {
-            let previous = samples.last { $0.provider == snapshot.provider && $0.kind == window.kind }
+            let previous = samples.last {
+                $0.provider == snapshot.provider && $0.kind == window.kind && $0.label == window.label
+            }
             let sample = UsageSample(
                 provider: snapshot.provider,
                 kind: window.kind,
                 at: snapshot.capturedAt,
                 usedPercent: window.usedPercent,
                 resetsAt: window.resetsAt,
+                label: window.label,
             )
 
             guard let previous else {
@@ -118,6 +133,7 @@ actor UsageRepository {
                             at: window.startedAt,
                             usedPercent: 0,
                             resetsAt: window.resetsAt,
+                            label: window.label,
                         ),
                     )
                     samples.append(sample)

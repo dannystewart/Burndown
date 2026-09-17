@@ -142,7 +142,9 @@ private struct ProviderSection: View {
         } else if hasSession {
             nil // A session exists but is idle: no full card, only the compact rows below.
         } else {
-            self.monitor.soonestLimit(for: self.provider) ?? ordered.first
+            // No session window: the provider's first reported window leads. For Cursor that's the
+            // plan-spend window; for single-window providers it's simply their only window.
+            ordered.first
         }
 
         if let featured {
@@ -213,7 +215,7 @@ private struct CompactWindowRow: View {
 
     var body: some View {
         HStack(spacing: 6) {
-            Text(self.window.kind.displayName.uppercased())
+            Text(self.window.displayName.uppercased())
                 .font(.system(size: 9, weight: .semibold))
                 .foregroundStyle(Color.mutedText)
                 .tracking(0.6)

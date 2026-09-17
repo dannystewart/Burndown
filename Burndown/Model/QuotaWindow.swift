@@ -54,13 +54,31 @@ nonisolated struct QuotaWindow: Codable, Sendable, Hashable, Identifiable {
     let resetsAt: Date
     /// The full length of the window.
     let duration: TimeInterval
+    /// Distinguishes windows that share a kind within one provider.
+    ///
+    /// Most providers report one window per kind, so the kind alone identifies it. Cursor reports
+    /// several metrics — plan spend, auto-model usage, API usage — that all live in the same monthly
+    /// billing cycle, so they'd otherwise collide on kind. The label separates them for identity,
+    /// grouping, and display; it's nil for single-metric windows, which show their kind's name.
+    let label: String?
 
-    var id: QuotaWindowKind { self.kind }
+    var id: String { self.label.map { "\(self.kind.rawValue)#\($0)" } ?? self.kind.rawValue }
+
+    /// What to title this window in the popover: its metric label, or its kind when unlabelled.
+    var displayName: String { self.label ?? self.kind.displayName }
 
     var remainingPercent: Double { (100 - self.usedPercent).clamped(to: 0 ... 100) }
 
     /// When the current window began.
     var startedAt: Date { self.resetsAt.addingTimeInterval(-self.duration) }
+
+    init(kind: QuotaWindowKind, usedPercent: Double, resetsAt: Date, duration: TimeInterval, label: String? = nil) {
+        self.kind = kind
+        self.usedPercent = usedPercent
+        self.resetsAt = resetsAt
+        self.duration = duration
+        self.label = label
+    }
 
     /// How far through the window we are, 0...1.
     func elapsedFraction(asOf now: Date = .now) -> Double {

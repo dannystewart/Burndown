@@ -38,6 +38,11 @@ nonisolated enum CursorUsageClient {
         let limit: Double?
         let remaining: Double?
         let totalPercentUsed: Double?
+        /// Share of the auto-model allowance used, as a percentage. Reported separately from API
+        /// usage because they draw on different limits and move independently.
+        let autoPercentUsed: Double?
+        /// Share of the named-model (API) allowance used, as a percentage.
+        let apiPercentUsed: Double?
     }
 
     private struct UsageResponse: Decodable {
@@ -76,17 +81,32 @@ nonisolated enum CursorUsageClient {
             throw UsageError.malformedResponse("Cursor billing cycle already ended")
         }
 
+        // All three metrics share the billing cycle, so they share a kind and reset time and are
+        // separated by label. Plan (overall spend) leads; auto and API follow, and are only included
+        // when the account reports them. The kind is derived once from the shared cycle length.
+        let kind = QuotaWindowKind(duration: duration)
+        func window(_ label: String, _ used: Double?) -> QuotaWindow? {
+            used.map {
+                QuotaWindow(
+                    kind: kind,
+                    usedPercent: $0.clamped(to: 0 ... 100),
+                    resetsAt: cycleEnd,
+                    duration: duration,
+                    label: label,
+                )
+            }
+        }
+
+        let windows = [
+            window("Plan", percent),
+            window("Auto", planUsage.autoPercentUsed),
+            window("API", planUsage.apiPercentUsed),
+        ].compactMap(\.self)
+
         return UsageSnapshot(
             provider: .cursor,
             capturedAt: .now,
-            windows: [
-                QuotaWindow(
-                    kind: QuotaWindowKind(duration: duration),
-                    usedPercent: percent,
-                    resetsAt: cycleEnd,
-                    duration: duration,
-                ),
-            ],
+            windows: windows,
             plan: credentials.membershipType,
         )
     }

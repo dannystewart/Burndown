@@ -77,7 +77,9 @@ final class UsageMonitor {
         let rolls = provider.windowRolls(window.kind)
         return self.samples
             .filter {
-                guard $0.provider == provider, $0.kind == window.kind else { return false }
+                guard $0.provider == provider, $0.kind == window.kind, $0.label == window.label else {
+                    return false
+                }
                 return rolls
                     ? $0.at >= window.startedAt
                     : abs($0.resetsAt.timeIntervalSince(window.resetsAt)) < 120
