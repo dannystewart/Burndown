@@ -26,10 +26,11 @@ struct PopoverView: View {
     /// margin.
     ///
     /// Measured against the screen rather than fixed, so the popover uses a large display without
-    /// running off a laptop one.
+    /// running off a laptop one. `visibleFrame` already excludes the menu bar and Dock, so this
+    /// only needs to hold back a small margin of its own.
     private var maximumContentHeight: CGFloat {
-        let visible = NSScreen.main?.visibleFrame.height ?? 900
-        return max(320, visible * 0.7)
+        let visible = NSScreen.main?.visibleFrame.height ?? 800
+        return max(320, visible - 60)
     }
 
     var body: some View {
