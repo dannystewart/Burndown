@@ -19,20 +19,18 @@ struct QuotaCard: View {
             self.headline
             self.bar
 
-            // Only session windows get a chart. Over a week or a month the line is close to flat at
-            // this scale, so the plot restates the bar above it and the summary below it for 76pt;
-            // across five hours the shape is the whole point, showing whether a burst has stopped.
-            if self.window.kind == .session {
-                if self.samples.count >= 2 {
-                    BurndownChart(
-                        provider: self.provider,
-                        window: self.window,
-                        samples: self.samples,
-                        analysis: self.analysis,
-                    )
-                } else {
-                    self.awaitingHistory
-                }
+            // The chart is worth its height only when it says something the bar can't: either the
+            // observed history shows a real ramp, or the projection ends low enough that the
+            // dashed line is the information. A window that qualifies — however long it runs —
+            // gets the shape; one drifting along near its steady pace stays collapsed to the bar,
+            // because a flat weekly plot restates the bar and the summary below it for 76pt.
+            if self.samples.count >= 2, self.analysis.isChartWorthy {
+                BurndownChart(
+                    provider: self.provider,
+                    window: self.window,
+                    samples: self.samples,
+                    analysis: self.analysis,
+                )
             }
 
             self.summary
@@ -86,16 +84,6 @@ struct QuotaCard: View {
             }
         }
         .frame(height: 4)
-    }
-
-    private var awaitingHistory: some View {
-        HStack(spacing: 5) {
-            Image(systemName: "clock.arrow.trianglehead.counterclockwise.rotate.90")
-            Text("Recording history — the chart fills in as Burndown runs")
-        }
-        .font(.system(size: 9))
-        .foregroundStyle(Color.mutedText)
-        .frame(height: 60, alignment: .center)
     }
 
     /// How fast the quota is going, then whether that's a problem.
