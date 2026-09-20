@@ -11,8 +11,7 @@ final class Preferences {
     private enum Key {
         static let menuBarLayout = "menuBarLayout"
         static let menuBarColorMode = "menuBarColorMode"
-        static let singleLineFormat = "singleLineFormat"
-        static let stackedFormat = "stackedFormat"
+        static let menuBarFormat = "menuBarFormat"
         static let preferredProvider = "preferredProvider"
         static let preferredSecondProvider = "preferredSecondProvider"
     }
@@ -29,14 +28,10 @@ final class Preferences {
         didSet { Self.defaults.set(self.menuBarColorMode.rawValue, forKey: Key.menuBarColorMode) }
     }
 
-    /// One line has only one window's worth of room, so it defaults to the bare number.
-    var singleLineFormat: MenuBarFormat {
-        didSet { Self.defaults.set(self.singleLineFormat.rawValue, forKey: Key.singleLineFormat) }
-    }
-
-    /// Two lines are the reason to ask for two lines, so they default to carrying more.
-    var stackedFormat: MenuBarFormat {
-        didSet { Self.defaults.set(self.stackedFormat.rawValue, forKey: Key.stackedFormat) }
+    /// The same format drives both layouts: a single row per provider, or a two-part stack under one
+    /// icon when only one provider is shown.
+    var menuBarFormat: MenuBarFormat {
+        didSet { Self.defaults.set(self.menuBarFormat.rawValue, forKey: Key.menuBarFormat) }
     }
 
     var preferredProvider: MenuBarProviderSelection {
@@ -47,19 +42,10 @@ final class Preferences {
         didSet { Self.defaults.set(self.preferredSecondProvider.rawValue, forKey: Key.preferredSecondProvider) }
     }
 
-    /// The format in force for the layout currently on screen.
-    var activeFormat: MenuBarFormat {
-        switch self.menuBarLayout {
-        case .single: self.singleLineFormat
-        case .stacked: self.stackedFormat
-        }
-    }
-
     private init() {
-        self.menuBarLayout = Self.read(Key.menuBarLayout) ?? .single
+        self.menuBarLayout = Self.read(Key.menuBarLayout) ?? .singleProvider
         self.menuBarColorMode = Self.read(Key.menuBarColorMode) ?? .whenLow
-        self.singleLineFormat = Self.read(Key.singleLineFormat) ?? .percentage
-        self.stackedFormat = Self.read(Key.stackedFormat) ?? .percentageAndRemaining
+        self.menuBarFormat = Self.read(Key.menuBarFormat) ?? .percentageAndRemaining
         self.preferredProvider = Self.read(Key.preferredProvider) ?? .lastActive
         self.preferredSecondProvider = Self.read(Key.preferredSecondProvider) ?? .lastActive
     }

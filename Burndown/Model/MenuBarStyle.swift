@@ -2,19 +2,19 @@ import Foundation
 
 // MARK: - MenuBarLayout
 
-/// How much of the menu bar Burndown is allowed to take up.
+/// How many providers the menu bar is allowed to show.
 nonisolated enum MenuBarLayout: String, CaseIterable, Identifiable, Sendable {
-    /// A single row showing the preferred provider.
-    case single
-    /// One compact row per provider, stacked within the menu bar's height.
-    case stacked
+    /// A single provider. A two-part format stacks its values beneath one icon.
+    case singleProvider
+    /// One row per provider, stacked within the menu bar's height.
+    case twoProviders
 
     var id: String { self.rawValue }
 
     var displayName: String {
         switch self {
-        case .single: "Single Line"
-        case .stacked: "Two Lines"
+        case .singleProvider: "Single Provider"
+        case .twoProviders: "Two Providers"
         }
     }
 }
@@ -61,8 +61,9 @@ nonisolated enum MenuBarProviderSelection: RawRepresentable, Identifiable, Senda
 
 /// What a menu bar row actually says about a window.
 ///
-/// Kept separate from the layout so the two compose: a single line might be stripped back to a bare
-/// percentage while the two-line layout carries reset times, or the other way round.
+/// A format yields one or two parts. A single provider whose format has two parts stacks them under
+/// one icon — percentage on top, its companion below — so the label doesn't grow sideways. Two
+/// providers each render their parts on one line. The same format applies to both layouts.
 nonisolated enum MenuBarFormat: String, CaseIterable, Identifiable, Sendable {
     /// Kept as `percentage` so existing saved preferences continue to mean percentage remaining.
     case percentage
@@ -89,22 +90,24 @@ nonisolated enum MenuBarFormat: String, CaseIterable, Identifiable, Sendable {
         }
     }
 
-    /// Renders one window in this format.
-    func text(for window: QuotaWindow, asOf now: Date) -> String {
+    /// Renders one window in this format, top-to-bottom.
+    ///
+    /// One part fills a single line; two parts stack when only one provider is shown.
+    func parts(for window: QuotaWindow, asOf now: Date) -> [String] {
         let remainingPercent = Format.percent(window.remainingPercent)
         let usedPercent = Format.percent(window.usedPercent)
         let left = Format.duration(window.resetsAt.timeIntervalSince(now), for: window.kind)
         let at = Format.dayAndTime(window.resetsAt)
 
         switch self {
-        case .percentage: return remainingPercent
-        case .percentageUsed: return usedPercent
-        case .percentageAndRemaining: return "\(remainingPercent) · \(left)"
-        case .percentageUsedAndRemaining: return "\(usedPercent) · \(left)"
-        case .percentageAndReset: return "\(remainingPercent) · \(at)"
-        case .percentageUsedAndReset: return "\(usedPercent) · \(at)"
-        case .remaining: return left
-        case .reset: return at
+        case .percentage: return [remainingPercent]
+        case .percentageUsed: return [usedPercent]
+        case .percentageAndRemaining: return [remainingPercent, left]
+        case .percentageUsedAndRemaining: return [usedPercent, left]
+        case .percentageAndReset: return [remainingPercent, at]
+        case .percentageUsedAndReset: return [usedPercent, at]
+        case .remaining: return [left]
+        case .reset: return [at]
         }
     }
 }

@@ -24,7 +24,7 @@ struct MenuBarLabel: View {
         MenuBarRow.rows(
             from: self.monitor,
             layout: self.preferences.menuBarLayout,
-            format: self.preferences.activeFormat,
+            format: self.preferences.menuBarFormat,
             preferredProvider: self.preferences.preferredProvider,
             preferredSecondProvider: self.preferences.preferredSecondProvider,
         )
@@ -33,10 +33,10 @@ struct MenuBarLabel: View {
     private var rendered: NSImage? {
         let rows = self.rows
         let colored = self.usesColor(for: rows)
-        let stacked = rows.count > 1
+        let stacked = Self.isStacked(rows)
 
         let drawn = rows.map { row in
-            DrawnRow(id: row.id, symbol: row.symbol, text: row.text, color: self.color(for: row, colored: colored))
+            DrawnRow(id: row.id, symbol: row.symbol, parts: row.parts, color: self.color(for: row, colored: colored))
         }
 
         return Self.render(
@@ -53,6 +53,11 @@ struct MenuBarLabel: View {
             // Rendering can't fail in practice, but the menu bar item must never vanish.
             Image(systemName: "chart.line.downtrend.xyaxis")
         }
+    }
+
+    /// Anything beyond a single line needs the taller label and the smaller type.
+    private static func isStacked(_ rows: [MenuBarRow]) -> Bool {
+        rows.count > 1 || rows.contains { $0.parts.count > 1 }
     }
 
     /// Rasterises the label at the screen's own scale so it stays crisp on Retina and non-Retina.
@@ -103,7 +108,7 @@ nonisolated struct MenuBarRow: Identifiable, Sendable {
         MenuBarRow(
             id: "empty",
             symbol: "chart.line.downtrend.xyaxis",
-            text: "",
+            parts: [""],
             severity: .primary,
             isWarning: false,
         )
@@ -111,7 +116,8 @@ nonisolated struct MenuBarRow: Identifiable, Sendable {
 
     let id: String
     let symbol: String
-    let text: String
+    /// The format's values, top to bottom. One part fills a single line.
+    let parts: [String]
     /// What this row would be colored if color were switched on.
     let severity: Color
     let isWarning: Bool
@@ -125,9 +131,9 @@ nonisolated struct MenuBarRow: Identifiable, Sendable {
         preferredSecondProvider: MenuBarProviderSelection,
     ) -> [MenuBarRow] {
         switch layout {
-        case .single:
+        case .singleProvider:
             self.rows(from: monitor, format: format, selections: [preferredProvider])
-        case .stacked:
+        case .twoProviders:
             self.rows(from: monitor, format: format, selections: [preferredProvider, preferredSecondProvider])
         }
     }
@@ -177,7 +183,7 @@ nonisolated struct MenuBarRow: Identifiable, Sendable {
         return MenuBarRow(
             id: id,
             symbol: provider.symbolName,
-            text: format.text(for: window, asOf: .now),
+            parts: format.parts(for: window, asOf: .now),
             severity: paceWarning && window.remainingPercent >= QuotaWindow.criticalThreshold
                 ? .orange
                 : window.severityColor,
@@ -199,21 +205,40 @@ nonisolated struct MenuBarRow: Identifiable, Sendable {
 private struct DrawnRow: Identifiable {
     let id: String
     let symbol: String
-    let text: String
+    let parts: [String]
     let color: Color
+
+    /// The parts joined for a single-line row: `12% · 5d 18h`.
+    var singleLineText: String {
+        self.parts.filter { !$0.isEmpty }.joined(separator: " · ")
+    }
 }
 
 // MARK: - MenuBarContent
 
 /// The drawn label, sized to fit the menu bar exactly.
 private struct MenuBarContent: View {
+    private static let singleLineFontSize: CGFloat = 12
+    private static let stackedFontSize: CGFloat = 9
+
     let rows: [DrawnRow]
     let height: CGFloat
 
-    private var isStacked: Bool { self.rows.count > 1 }
+    private var lineCount: Int {
+        self.rows.reduce(0) { $0 + max(1, $1.parts.count) }
+    }
+
+    private var isStacked: Bool { self.lineCount > 1 }
 
     /// Two lines have to share the height a single line gets all to itself.
-    private var fontSize: CGFloat { self.isStacked ? 9 : 12 }
+    private var fontSize: CGFloat { self.isStacked ? Self.stackedFontSize : Self.singleLineFontSize }
+
+    /// A lone provider with a two-part format stacks its values beside the icon, so a percentage
+    /// and its reset time cost no more width than the wider of the two.
+    private var sharedIconRow: DrawnRow? {
+        guard self.rows.count == 1, let row = self.rows.first, row.parts.count > 1 else { return nil }
+        return row
+    }
 
     /// A grid rather than stacked `HStack`s so the two columns line up independently.
     ///
@@ -222,23 +247,46 @@ private struct MenuBarContent: View {
     /// would just move the raggedness to the icons. Giving each column its own alignment pins the
     /// icons to the left and the text to the right, so both edges are flush.
     var body: some View {
-        Grid(horizontalSpacing: 2.5, verticalSpacing: self.isStacked ? 1 : 0) {
-            ForEach(self.rows) { row in
-                GridRow {
-                    Image(systemName: row.symbol)
-                        .font(.system(size: self.fontSize - 1, weight: .semibold))
-                        .foregroundStyle(row.color)
-                    if !row.text.isEmpty {
-                        Text(row.text)
-                            .font(.system(size: self.fontSize, weight: .medium))
-                            .monospacedDigit()
-                            .foregroundStyle(row.color)
-                            .gridColumnAlignment(.trailing)
+        Group {
+            if let row = self.sharedIconRow {
+                HStack(spacing: 2.5) {
+                    // A lone provider keeps the larger icon; only its text takes the shorter
+                    // stacked type so two lines still fit the menu bar.
+                    self.icon(for: row, fontSize: Self.singleLineFontSize)
+                    VStack(alignment: .leading, spacing: 1) {
+                        ForEach(Array(row.parts.enumerated()), id: \.offset) { _, part in
+                            self.label(part, color: row.color)
+                        }
+                    }
+                }
+            } else {
+                Grid(horizontalSpacing: 2.5, verticalSpacing: self.isStacked ? 1 : 0) {
+                    ForEach(self.rows) { row in
+                        GridRow {
+                            self.icon(for: row)
+                            if !row.singleLineText.isEmpty {
+                                self.label(row.singleLineText, color: row.color)
+                                    .gridColumnAlignment(.trailing)
+                            }
+                        }
                     }
                 }
             }
         }
         .frame(height: self.height, alignment: .center)
         .fixedSize()
+    }
+
+    private func icon(for row: DrawnRow, fontSize: CGFloat? = nil) -> some View {
+        Image(systemName: row.symbol)
+            .font(.system(size: (fontSize ?? self.fontSize) - 1, weight: .semibold))
+            .foregroundStyle(row.color)
+    }
+
+    private func label(_ text: String, color: Color) -> some View {
+        Text(text)
+            .font(.system(size: self.fontSize, weight: .medium))
+            .monospacedDigit()
+            .foregroundStyle(color)
     }
 }

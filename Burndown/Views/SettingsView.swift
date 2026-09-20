@@ -71,7 +71,7 @@ struct SettingsView: View {
         Section("Menu Bar") {
             PolyPickerRow(
                 "Layout",
-                description: "Single Line shows one provider; Two Lines shows one provider per line",
+                description: "Single Provider shows one provider; Two Providers shows one per row",
                 selection: Bindable(self.preferences).menuBarLayout,
             ) {
                 ForEach(MenuBarLayout.allCases) { layout in
@@ -85,7 +85,7 @@ struct SettingsView: View {
                 }
             }
 
-            if self.preferences.menuBarLayout == .stacked {
+            if self.preferences.menuBarLayout == .twoProviders {
                 PolyPickerRow("Preferred Second Provider", selection: Bindable(self.preferences).preferredSecondProvider) {
                     ForEach(MenuBarProviderSelection.allCases) { selection in
                         Text(selection.displayName).tag(selection)
@@ -93,13 +93,7 @@ struct SettingsView: View {
                 }
             }
 
-            PolyPickerRow("Single-Line Format", selection: Bindable(self.preferences).singleLineFormat) {
-                ForEach(MenuBarFormat.allCases) { format in
-                    Text(format.displayName).tag(format)
-                }
-            }
-
-            PolyPickerRow("Two-Line Format", selection: Bindable(self.preferences).stackedFormat) {
+            PolyPickerRow("Format", selection: Bindable(self.preferences).menuBarFormat) {
                 ForEach(MenuBarFormat.allCases) { format in
                     Text(format.displayName).tag(format)
                 }
