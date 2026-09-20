@@ -4,7 +4,7 @@ import Foundation
 
 /// How much of the menu bar Burndown is allowed to take up.
 nonisolated enum MenuBarLayout: String, CaseIterable, Identifiable, Sendable {
-    /// A single row showing whichever window is closest to running out.
+    /// A single row showing the preferred provider.
     case single
     /// One compact row per provider, stacked within the menu bar's height.
     case stacked
@@ -15,6 +15,44 @@ nonisolated enum MenuBarLayout: String, CaseIterable, Identifiable, Sendable {
         switch self {
         case .single: "Single Line"
         case .stacked: "Two Lines"
+        }
+    }
+}
+
+// MARK: - MenuBarProviderSelection
+
+/// The provider a menu bar row should follow.
+nonisolated enum MenuBarProviderSelection: RawRepresentable, Identifiable, Sendable, Hashable {
+    case lastActive
+    case provider(Provider)
+
+    static var allCases: [Self] {
+        [.lastActive] + Provider.allCases.map(provider)
+    }
+
+    var rawValue: String {
+        switch self {
+        case .lastActive: "lastActive"
+        case let .provider(provider): provider.rawValue
+        }
+    }
+
+    var id: String { self.rawValue }
+
+    var displayName: String {
+        switch self {
+        case .lastActive: "Last Used"
+        case let .provider(provider): provider.displayName
+        }
+    }
+
+    init?(rawValue: String) {
+        if rawValue == "lastActive" {
+            self = .lastActive
+        } else if let provider = Provider(rawValue: rawValue) {
+            self = .provider(provider)
+        } else {
+            return nil
         }
     }
 }

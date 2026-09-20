@@ -13,6 +13,8 @@ final class Preferences {
         static let menuBarColorMode = "menuBarColorMode"
         static let singleLineFormat = "singleLineFormat"
         static let stackedFormat = "stackedFormat"
+        static let preferredProvider = "preferredProvider"
+        static let preferredSecondProvider = "preferredSecondProvider"
     }
 
     static let shared: Preferences = .init()
@@ -37,6 +39,14 @@ final class Preferences {
         didSet { Self.defaults.set(self.stackedFormat.rawValue, forKey: Key.stackedFormat) }
     }
 
+    var preferredProvider: MenuBarProviderSelection {
+        didSet { Self.defaults.set(self.preferredProvider.rawValue, forKey: Key.preferredProvider) }
+    }
+
+    var preferredSecondProvider: MenuBarProviderSelection {
+        didSet { Self.defaults.set(self.preferredSecondProvider.rawValue, forKey: Key.preferredSecondProvider) }
+    }
+
     /// The format in force for the layout currently on screen.
     var activeFormat: MenuBarFormat {
         switch self.menuBarLayout {
@@ -50,6 +60,8 @@ final class Preferences {
         self.menuBarColorMode = Self.read(Key.menuBarColorMode) ?? .whenLow
         self.singleLineFormat = Self.read(Key.singleLineFormat) ?? .percentage
         self.stackedFormat = Self.read(Key.stackedFormat) ?? .percentageAndRemaining
+        self.preferredProvider = Self.read(Key.preferredProvider) ?? .lastActive
+        self.preferredSecondProvider = Self.read(Key.preferredSecondProvider) ?? .lastActive
     }
 
     private nonisolated static func read<Value: RawRepresentable>(_ key: String) -> Value?

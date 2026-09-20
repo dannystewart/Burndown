@@ -1,7 +1,7 @@
 import Foundation
 
 /// An AI subscription whose quota Burndown tracks.
-nonisolated enum Provider: String, Codable, Sendable, CaseIterable, Identifiable {
+nonisolated enum Provider: String, Codable, Sendable, CaseIterable, Identifiable, Hashable {
     case claude
     case codex
     case cursor

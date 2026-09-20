@@ -71,11 +71,25 @@ struct SettingsView: View {
         Section("Menu Bar") {
             PolyPickerRow(
                 "Layout",
-                description: "Single Line shows the closest limit; Two Lines shows one provider per line",
+                description: "Single Line shows one provider; Two Lines shows one provider per line",
                 selection: Bindable(self.preferences).menuBarLayout,
             ) {
                 ForEach(MenuBarLayout.allCases) { layout in
                     Text(layout.displayName).tag(layout)
+                }
+            }
+
+            PolyPickerRow("Preferred Provider", selection: Bindable(self.preferences).preferredProvider) {
+                ForEach(MenuBarProviderSelection.allCases) { selection in
+                    Text(selection.displayName).tag(selection)
+                }
+            }
+
+            if self.preferences.menuBarLayout == .stacked {
+                PolyPickerRow("Preferred Second Provider", selection: Bindable(self.preferences).preferredSecondProvider) {
+                    ForEach(MenuBarProviderSelection.allCases) { selection in
+                        Text(selection.displayName).tag(selection)
+                    }
                 }
             }
 

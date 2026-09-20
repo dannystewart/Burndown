@@ -25,6 +25,8 @@ struct MenuBarLabel: View {
             from: self.monitor,
             layout: self.preferences.menuBarLayout,
             format: self.preferences.activeFormat,
+            preferredProvider: self.preferences.preferredProvider,
+            preferredSecondProvider: self.preferences.preferredSecondProvider,
         )
     }
 
@@ -97,7 +99,15 @@ struct MenuBarLabel: View {
 
 /// One line of the menu bar label, before any decision about color has been made.
 nonisolated struct MenuBarRow: Identifiable, Sendable {
-    private static let maximumRows = 2
+    private static var emptyRow: MenuBarRow {
+        MenuBarRow(
+            id: "empty",
+            symbol: "chart.line.downtrend.xyaxis",
+            text: "",
+            severity: .primary,
+            isWarning: false,
+        )
+    }
 
     let id: String
     let symbol: String
@@ -107,63 +117,48 @@ nonisolated struct MenuBarRow: Identifiable, Sendable {
     let isWarning: Bool
 
     @MainActor
-    static func rows(from monitor: UsageMonitor, layout: MenuBarLayout, format: MenuBarFormat) -> [MenuBarRow] {
+    static func rows(
+        from monitor: UsageMonitor,
+        layout: MenuBarLayout,
+        format: MenuBarFormat,
+        preferredProvider: MenuBarProviderSelection,
+        preferredSecondProvider: MenuBarProviderSelection,
+    ) -> [MenuBarRow] {
         switch layout {
-        case .single: self.single(from: monitor, format: format)
-        case .stacked: self.perProvider(from: monitor, format: format)
+        case .single:
+            self.rows(from: monitor, format: format, selections: [preferredProvider])
+        case .stacked:
+            self.rows(from: monitor, format: format, selections: [preferredProvider, preferredSecondProvider])
         }
     }
 
-    /// The most recently active provider, so the label follows the service the person is using.
-    ///
-    /// It carries its provider's own icon rather than a generic one: a bare percentage in the menu
-    /// bar is ambiguous when two providers are being watched.
     @MainActor
-    private static func single(from monitor: UsageMonitor, format: MenuBarFormat) -> [MenuBarRow] {
-        guard
-            let provider = monitor.recentlyActiveProviders.first,
-            let window = monitor.soonestLimit(for: provider) else
-        {
-            return [
-                MenuBarRow(
-                    id: "empty",
-                    symbol: "chart.line.downtrend.xyaxis",
-                    text: "",
-                    severity: .primary,
-                    isWarning: false,
-                ),
-            ]
-        }
-        return [
-            Self.row(
+    private static func rows(
+        from monitor: UsageMonitor,
+        format: MenuBarFormat,
+        selections: [MenuBarProviderSelection],
+    ) -> [MenuBarRow] {
+        var selectedProviders = Set<Provider>()
+        let rows = selections.compactMap { selection -> MenuBarRow? in
+            let provider: Provider? = switch selection {
+            case .lastActive:
+                monitor.recentlyActiveProviders.first { !selectedProviders.contains($0) }
+            case let .provider(preferred):
+                selectedProviders.contains(preferred) ? nil : preferred
+            }
+
+            guard let provider else { return nil }
+            selectedProviders.insert(provider)
+            guard let window = monitor.soonestLimit(for: provider) else { return nil }
+            return Self.row(
                 id: provider.rawValue,
                 provider: provider,
                 window: window,
                 monitor: monitor,
                 format: format,
-            ),
-        ]
-    }
-
-    /// One row for each of the two providers with the most recent usage activity.
-    ///
-    /// The label tops out at two lines no matter how many providers are signed in, so when more
-    /// than two have data, the two most recently used providers win.
-    @MainActor
-    private static func perProvider(from monitor: UsageMonitor, format: MenuBarFormat) -> [MenuBarRow] {
-        let candidates = monitor.recentlyActiveProviders.compactMap { provider -> (provider: Provider, window: QuotaWindow)? in
-            monitor.soonestLimit(for: provider).map { (provider, $0) }
+            )
         }
-        // A machine with only one provider signed in gets a single line rather than a lopsided
-        // pair.
-        if candidates.isEmpty { return Self.single(from: monitor, format: format) }
-        guard candidates.count > Self.maximumRows else {
-            return candidates.map { Self.row(id: $0.provider.rawValue, provider: $0.provider, window: $0.window, monitor: monitor, format: format) }
-        }
-
-        return candidates.prefix(Self.maximumRows).map {
-            Self.row(id: $0.provider.rawValue, provider: $0.provider, window: $0.window, monitor: monitor, format: format)
-        }
+        return rows.isEmpty ? [Self.emptyRow] : rows
     }
 
     @MainActor
