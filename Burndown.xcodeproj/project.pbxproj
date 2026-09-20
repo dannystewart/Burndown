@@ -360,6 +360,7 @@
 		};
 		000000000000000111000000 /* Debug configuration for PBXNativeTarget "Burndown" */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = 30BEB733305C2CA400D44DC9 /* BuildNumber.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = BurndownIcon;
 				CODE_SIGN_STYLE = Automatic;
@@ -392,6 +393,7 @@
 		};
 		000000000000000112000000 /* Release configuration for PBXNativeTarget "Burndown" */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = 30BEB733305C2CA400D44DC9 /* BuildNumber.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = BurndownIcon;
 				CODE_SIGN_STYLE = Automatic;
