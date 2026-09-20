@@ -7,6 +7,7 @@ struct PopoverView: View {
     @State private var contentHeight: CGFloat = 0
 
     let monitor: UsageMonitor
+    let onOpenSettings: () -> Void
 
     private var recorderWarning: String? {
         if self.monitor.connectionError != nil {
@@ -63,7 +64,7 @@ struct PopoverView: View {
             .scrollBounceBehavior(.basedOnSize)
 
             Divider()
-            FooterView(monitor: self.monitor)
+            FooterView(monitor: self.monitor, onOpenSettings: self.onOpenSettings)
         }
         .frame(width: 380)
         // The system glass the menu bar window applies by default is too translucent to read over
@@ -249,9 +250,10 @@ private struct CompactWindowRow: View {
 // MARK: - FooterView
 
 private struct FooterView: View {
-    @Environment(\.openSettings) private var openSettings
+    @Environment(\.dismiss) private var dismiss
 
     let monitor: UsageMonitor
+    let onOpenSettings: () -> Void
 
     var body: some View {
         HStack(spacing: 8) {
@@ -276,10 +278,11 @@ private struct FooterView: View {
             }
 
             Button {
-                // An accessory app has no menu bar of its own, so the settings window would open
-                // behind everything without asking for activation first.
-                NSApp.activate(ignoringOtherApps: true)
-                self.openSettings()
+                self.dismiss()
+                Task { @MainActor in
+                    await Task.yield()
+                    self.onOpenSettings()
+                }
             } label: {
                 Image(systemName: "gearshape")
             }

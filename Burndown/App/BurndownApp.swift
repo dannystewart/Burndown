@@ -1,3 +1,4 @@
+import AppKit
 import PolyKit
 import SwiftUI
 
@@ -17,22 +18,49 @@ nonisolated enum BurndownEntryPoint {
 // MARK: - BurndownApp
 
 struct BurndownApp: App {
-    @State private var monitor: UsageMonitor = .init()
-    @State private var preferences: Preferences = .shared
+    // swiftformat:disable:next unusedPrivateDeclarations
+    @NSApplicationDelegateAdaptor(BurndownAppDelegate.self) private var appDelegate
 
     var body: some Scene {
         MenuBarExtra {
-            PopoverView(monitor: self.monitor)
+            PopoverView(
+                monitor: self.appDelegate.monitor,
+                onOpenSettings: self.appDelegate.openSettings,
+            )
         } label: {
-            MenuBarLabel(monitor: self.monitor, preferences: self.preferences)
+            MenuBarLabel(monitor: self.appDelegate.monitor, preferences: self.appDelegate.preferences)
         }
         .menuBarExtraStyle(.window)
+    }
+}
 
-        // A menu-bar-only app needs Settings declared directly for openSettings to discover it.
-        Settings {
+// MARK: - BurndownAppDelegate
+
+@MainActor
+private final class BurndownAppDelegate: NSObject, NSApplicationDelegate {
+    let monitor: UsageMonitor = .init()
+    let preferences: Preferences = .shared
+
+    private var settingsHost: PolySettingsHost?
+
+    func applicationWillFinishLaunching(_ notification: Notification) {
+        self.settingsHost = PolySettingsHost.install(
+            applicationWillFinishLaunching: notification,
+            configuration: .accessoryApp(
+                aboutInfo: .init(),
+                commandQBehavior: .quit,
+            ),
+        ) {
             SettingsView(preferences: self.preferences, monitor: self.monitor)
         }
-        .windowResizability(.contentSize)
+    }
+
+    func applicationDidFinishLaunching(_: Notification) {
+        NSApp.setActivationPolicy(.accessory)
+    }
+
+    func openSettings() {
+        self.settingsHost?.open()
     }
 }
 

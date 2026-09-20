@@ -6,7 +6,6 @@ struct SettingsView: View {
     private enum SettingsTab: Hashable {
         case general
         case providers
-        case about
     }
 
     @State private var selectedTab: SettingsTab = .general
@@ -30,15 +29,11 @@ struct SettingsView: View {
         PolySettingsTabs(selection: self.$selectedTab) {
             PolySettingsTab("General", systemImage: "gearshape", tag: SettingsTab.general) {
                 self.menuBarSection
+                self.backgroundRecordingSection
             }
 
             PolySettingsTab("Providers", systemImage: "cpu", tag: SettingsTab.providers) {
                 self.providersSection
-            }
-
-            PolySettingsTab("About", systemImage: "info.circle", tag: SettingsTab.about) {
-                self.backgroundRecordingSection
-                PolyAboutView()
             }
         }
     }
@@ -104,6 +99,7 @@ struct SettingsView: View {
         }
     }
 
+    @ViewBuilder
     private var providersSection: some View {
         Section("Providers") {
             ForEach(Provider.allCases) { provider in
@@ -113,35 +109,40 @@ struct SettingsView: View {
                             .foregroundStyle(.secondary)
                     }
                 }
+            }
+        }
 
-                if provider == .ollamaCloud {
-                    PolySettingsRow {
-                        LabeledContent("Session Cookie") {
-                            HStack(spacing: 8) {
-                                SecureField("aid=…; __Secure-session=…", text: self.$ollamaCookie)
-                                    .textFieldStyle(.roundedBorder)
-                                    .frame(maxWidth: 260)
-
-                                Button("Save") {
-                                    OllamaCloudCredentialStore.save(self.ollamaCookie)
-                                    self.ollamaCookie = ""
-                                }
-                                .disabled(self.ollamaCookie.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
-
-                                if OllamaCloudCredentialStore.isConfigured {
-                                    Button("Remove", role: .destructive) {
-                                        OllamaCloudCredentialStore.clear()
-                                    }
-                                }
-                            }
+        Section {
+            PolySettingsRow {
+                LabeledContent("Session Cookie") {
+                    HStack(spacing: 8) {
+                        SecureField(
+                            text: self.$ollamaCookie,
+                            prompt: Text("aid=...; __Secure-session=..."),
+                        ) {
+                            EmptyView()
                         }
-                    }
+                        .textFieldStyle(.roundedBorder)
+                        .frame(maxWidth: 260)
 
-                    Text("Copy the Cookie header from ollama.com/settings in your browser and paste it here. Burndown only sends it to ollama.com.")
-                        .font(.callout)
-                        .foregroundStyle(.secondary)
+                        Button("Save") {
+                            OllamaCloudCredentialStore.save(self.ollamaCookie)
+                            self.ollamaCookie = ""
+                        }
+                        .disabled(
+                            self.ollamaCookie.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+                                && !OllamaCloudCredentialStore.isConfigured,
+                        )
+                    }
                 }
             }
+        } header: {
+            Text("Ollama Cloud")
+        } footer: {
+            Text("Copy the Cookie header from ollama.com/settings in your browser and paste it here. Burndown only sends it to ollama.com.")
+        }
+        .onAppear {
+            self.ollamaCookie = (try? OllamaCloudCredentialStore.load())?.cookie ?? ""
         }
     }
 

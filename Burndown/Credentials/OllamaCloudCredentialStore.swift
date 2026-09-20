@@ -39,7 +39,12 @@ nonisolated enum OllamaCloudCredentialStore {
     }
 
     static func save(_ cookie: String) {
-        UserDefaults(suiteName: self.suiteName)?.set(cookie.trimmedCookie, forKey: self.cookieKey)
+        let cookie = cookie.trimmedCookie
+        guard !cookie.isEmpty else {
+            self.clear()
+            return
+        }
+        UserDefaults(suiteName: self.suiteName)?.set(cookie, forKey: self.cookieKey)
     }
 
     static func clear() {
