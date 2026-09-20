@@ -53,7 +53,7 @@ struct PopoverView: View {
             // the screen, which four providers already can.
             ScrollView {
                 VStack(alignment: .leading, spacing: 18) {
-                    ForEach(self.monitor.visibleProviders) { provider in
+                    ForEach(self.monitor.orderedVisibleProviders) { provider in
                         ProviderSection(provider: provider, monitor: self.monitor)
                     }
                 }

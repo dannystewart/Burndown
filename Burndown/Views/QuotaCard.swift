@@ -19,11 +19,8 @@ struct QuotaCard: View {
             self.headline
             self.bar
 
-            // The chart is worth its height only when it says something the bar can't: either the
-            // observed history shows a real ramp, or the projection ends low enough that the
-            // dashed line is the information. A window that qualifies — however long it runs —
-            // gets the shape; one drifting along near its steady pace stays collapsed to the bar,
-            // because a flat weekly plot restates the bar and the summary below it for 76pt.
+            // Historical movement alone is not enough: the chart needs a meaningful current
+            // projection. Otherwise the bar and summary already say everything a flat line could.
             if self.samples.count >= 2, self.analysis.isChartWorthy {
                 BurndownChart(
                     provider: self.provider,

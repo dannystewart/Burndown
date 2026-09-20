@@ -114,13 +114,16 @@ nonisolated struct MenuBarRow: Identifiable, Sendable {
         }
     }
 
-    /// The soonest limit across everything visible, which is the number that would bite first.
+    /// The most recently active provider, so the label follows the service the person is using.
     ///
     /// It carries its provider's own icon rather than a generic one: a bare percentage in the menu
     /// bar is ambiguous when two providers are being watched.
     @MainActor
     private static func single(from monitor: UsageMonitor, format: MenuBarFormat) -> [MenuBarRow] {
-        guard let soonest = monitor.soonestLimit else {
+        guard
+            let provider = monitor.recentlyActiveProviders.first,
+            let window = monitor.soonestLimit(for: provider) else
+        {
             return [
                 MenuBarRow(
                     id: "empty",
@@ -133,23 +136,22 @@ nonisolated struct MenuBarRow: Identifiable, Sendable {
         }
         return [
             Self.row(
-                id: "soonest",
-                provider: soonest.provider,
-                window: soonest.window,
+                id: provider.rawValue,
+                provider: provider,
+                window: window,
                 monitor: monitor,
                 format: format,
             ),
         ]
     }
 
-    /// One row per provider that's actually present, each showing its own soonest limit.
+    /// One row for each of the two providers with the most recent usage activity.
     ///
     /// The label tops out at two lines no matter how many providers are signed in, so when more
-    /// than two have data, the two whose limits would bite first win — that's what the redundant
-    /// rows would have been dropped for anyway.
+    /// than two have data, the two most recently used providers win.
     @MainActor
     private static func perProvider(from monitor: UsageMonitor, format: MenuBarFormat) -> [MenuBarRow] {
-        let candidates = monitor.visibleProviders.compactMap { provider -> (provider: Provider, window: QuotaWindow)? in
+        let candidates = monitor.recentlyActiveProviders.compactMap { provider -> (provider: Provider, window: QuotaWindow)? in
             monitor.soonestLimit(for: provider).map { (provider, $0) }
         }
         // A machine with only one provider signed in gets a single line rather than a lopsided
@@ -159,22 +161,9 @@ nonisolated struct MenuBarRow: Identifiable, Sendable {
             return candidates.map { Self.row(id: $0.provider.rawValue, provider: $0.provider, window: $0.window, monitor: monitor, format: format) }
         }
 
-        let urgent = candidates
-            .sorted {
-                BurnAnalysis.soonest(
-                    $0.window,
-                    samples: monitor.series(for: $0.provider, window: $0.window),
-                    than: $1.window,
-                    samples: monitor.series(for: $1.provider, window: $1.window),
-                )
-            }
-            .prefix(Self.maximumRows)
-            .map(\.provider)
-        let choice = Dictionary(uniqueKeysWithValues: urgent.enumerated().map { ($0.element.rawValue, $0.offset) })
-
-        return candidates
-            .filter { choice[$0.provider.rawValue] != nil }
-            .map { Self.row(id: $0.provider.rawValue, provider: $0.provider, window: $0.window, monitor: monitor, format: format) }
+        return candidates.prefix(Self.maximumRows).map {
+            Self.row(id: $0.provider.rawValue, provider: $0.provider, window: $0.window, monitor: monitor, format: format)
+        }
     }
 
     @MainActor

@@ -15,9 +15,8 @@ nonisolated struct BurnAnalysis: Sendable {
     /// forecast for an entire billing cycle after the work has stopped.
     private static let burnRateHalfLifeHours: Double = 4
 
-    /// Observed consumption worth a chart, in percentage points; below this the line is noise
-    /// around flat.
-    private static let meaningfulRampPoints: Double = 10
+    /// A forecast needs this much forward movement before its chart says more than the headline.
+    private static let meaningfulProjectionPoints: Double = 10
 
     let window: QuotaWindow
     let samples: [UsageSample]
@@ -129,16 +128,11 @@ nonisolated struct BurnAnalysis: Sendable {
 
     /// Whether this window's chart is worth its height.
     ///
-    /// A window that has barely moved — one trigger request, a fraction of a percent — plots as a
-    /// flat line that restates the bar and the pace figures, however long or short the window is.
-    /// The chart earns its space only when the observed history shows a real ramp, or when the
-    /// projection ends low enough that the dashed line is itself the information.
+    /// A historical drop is not enough: once the recent rate has cooled, a flat forecast only
+    /// repeats the headline. The chart returns when the current pace projects a meaningful change.
     var isChartWorthy: Bool {
-        if self.projectedRemainingAtReset < 50 { return true }
-        guard let baseline = self.observedSamples.first, let latest = self.observedSamples.last else {
-            return false
-        }
-        return (latest.usedPercent - baseline.usedPercent) >= Self.meaningfulRampPoints
+        guard let burnPerHour else { return false }
+        return burnPerHour * self.hoursUntilReset >= Self.meaningfulProjectionPoints
     }
 
     /// The dashed forward-looking line for the chart, in remaining-percentage terms.
