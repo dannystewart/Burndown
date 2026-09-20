@@ -11,6 +11,9 @@ nonisolated struct BurnAnalysis: Sendable {
     /// A short weekly observation should not be extrapolated as round-the-clock activity.
     private static let assumedActiveHoursPerDay: Double = 8
     private static let hoursPerDay: Double = 24
+    /// Older usage still matters, but its influence halves every few hours instead of defining the
+    /// forecast for an entire billing cycle after the work has stopped.
+    private static let burnRateHalfLifeHours: Double = 4
 
     /// Observed consumption worth a chart, in percentage points; below this the line is noise
     /// around flat.
@@ -27,13 +30,28 @@ nonisolated struct BurnAnalysis: Sendable {
         max(0, self.window.resetsAt.timeIntervalSince(self.now)) / 3600
     }
 
-    /// Consumption observed after Burndown established a baseline, in percentage points per hour.
+    /// Recent consumption observed after Burndown established a baseline, in percentage points per
+    /// hour. Each sample interval is exponentially weighted, so the estimate cools continuously
+    /// through an idle stretch without letting a few minutes of activity dictate the forecast.
     var burnPerHour: Double? {
         let observed = self.observedSamples
         guard let baseline = observed.first, let latest = observed.last else { return nil }
-        let observedHours = latest.at.timeIntervalSince(baseline.at) / 3600
+        let observedHours = self.now.timeIntervalSince(baseline.at) / 3600
         guard observedHours >= Self.minimumElapsedHours else { return nil }
-        let observedRate = max(0, latest.usedPercent - baseline.usedPercent) / observedHours
+
+        var observedRate = 0.0
+        for (previous, current) in zip(observed, observed.dropFirst()) {
+            let intervalHours = current.at.timeIntervalSince(previous.at) / 3600
+            guard intervalHours > 0 else { continue }
+            let intervalRate = max(0, current.usedPercent - previous.usedPercent) / intervalHours
+            let carryover = exp(-intervalHours / Self.burnRateHalfLifeHours)
+            observedRate = observedRate * carryover + intervalRate * (1 - carryover)
+        }
+
+        // Samples are keyframed every fifteen minutes, but the card recomputes its forecast every
+        // fifteen seconds. Continue cooling the estimate during that gap too.
+        let idleHours = max(0, self.now.timeIntervalSince(latest.at)) / 3600
+        observedRate *= exp(-idleHours / Self.burnRateHalfLifeHours)
         switch self.window.kind {
         case .session:
             return observedRate
