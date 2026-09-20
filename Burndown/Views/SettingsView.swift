@@ -29,7 +29,7 @@ struct SettingsView: View {
         PolySettingsTabs(selection: self.$selectedTab) {
             PolySettingsTab("General", systemImage: "gearshape", tag: SettingsTab.general) {
                 self.menuBarSection
-                self.backgroundRecordingSection
+                self.backgroundMonitorSection
             }
 
             PolySettingsTab("Providers", systemImage: "cpu", tag: SettingsTab.providers) {
@@ -38,10 +38,10 @@ struct SettingsView: View {
         }
     }
 
-    private var backgroundRecordingSection: some View {
-        Section("Background Recording") {
+    private var backgroundMonitorSection: some View {
+        Section("Background Monitor") {
             PolySettingsRow {
-                LabeledContent("Recorder") {
+                LabeledContent("Status") {
                     Text(self.recorderStatus)
                         .foregroundStyle(self.recorderStatusColor)
                 }
@@ -91,7 +91,7 @@ struct SettingsView: View {
                 }
             }
 
-            PolyPickerRow("Use Color", selection: Bindable(self.preferences).menuBarColorMode) {
+            PolyPickerRow("Show Using Color", selection: Bindable(self.preferences).menuBarColorMode) {
                 ForEach(MenuBarColorMode.allCases) { mode in
                     Text(mode.displayName).tag(mode)
                 }
