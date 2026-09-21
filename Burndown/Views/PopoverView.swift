@@ -125,12 +125,11 @@ private struct ProviderSection: View {
         }
     }
 
-    /// One window in full — with its chart — and the rest as a line each, shortest window first.
+    /// One window in full — with its chart when history exists — and the rest as a line each,
+    /// shortest window first.
     ///
-    /// Only the session window earns the full card, because the five-hour chart is the only one
-    /// whose shape is worth the height; the weekly and monthly windows stay compact regardless. A
-    /// provider with no session window (Codex, Cursor) features its nearest limit instead, so it
-    /// still leads with a headline rather than a lone one-liner.
+    /// The session window leads when one is present. A provider with no session window (Codex,
+    /// Cursor) features its nearest limit instead, so its available history remains visible.
     ///
     /// A rolling session window that isn't active — OpenCode Go's, while nothing has been used in
     /// the last five hours — is dropped entirely rather than shown at 0%: its number is

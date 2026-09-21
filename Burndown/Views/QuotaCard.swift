@@ -19,14 +19,15 @@ struct QuotaCard: View {
             self.headline
             self.bar
 
-            // Historical movement alone is not enough: the chart needs a meaningful current            // projection. Otherwise the bar and summary already say everything a flat line could.
-            if self.samples.count >= 2, self.analysis.isChartWorthy {
+            if self.samples.count >= 2 {
                 BurndownChart(
                     provider: self.provider,
                     window: self.window,
                     samples: self.samples,
                     analysis: self.analysis,
                 )
+            } else {
+                self.awaitingHistory
             }
         }
         .padding(10)
@@ -94,5 +95,15 @@ struct QuotaCard: View {
             }
         }
         .frame(height: 4)
+    }
+
+    private var awaitingHistory: some View {
+        HStack(spacing: 5) {
+            Image(systemName: "clock.arrow.trianglehead.counterclockwise.rotate.90")
+            Text("Recording history — the chart fills in as Burndown runs")
+        }
+        .font(.system(size: 9))
+        .foregroundStyle(Color.mutedText)
+        .frame(height: 60, alignment: .center)
     }
 }
