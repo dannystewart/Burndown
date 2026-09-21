@@ -109,12 +109,20 @@ struct SettingsView: View {
 
     @ViewBuilder
     private var providersSection: some View {
-        Section("Providers") {
+        Section("Provider Visibility") {
             ForEach(Provider.allCases) { provider in
                 PolySettingsRow {
                     LabeledContent(provider.displayName) {
-                        Text(self.status(of: provider))
-                            .foregroundStyle(.secondary)
+                        HStack(spacing: 8) {
+                            Text(self.status(of: provider))
+                                .foregroundStyle(.secondary)
+
+                            if self.monitor.state(for: provider).error == nil {
+                                Button(self.isHidden(provider) ? "Show" : "Hide") {
+                                    self.toggleHidden(provider)
+                                }
+                            }
+                        }
                     }
                 }
             }
@@ -159,5 +167,17 @@ struct SettingsView: View {
         if let error = state.error { return error.message }
         if let plan = state.snapshot?.plan { return "Signed in (\(plan.capitalized))" }
         return state.snapshot == nil ? "Checking…" : "Signed in"
+    }
+
+    private func isHidden(_ provider: Provider) -> Bool {
+        self.preferences.hiddenProviders.contains(provider)
+    }
+
+    private func toggleHidden(_ provider: Provider) {
+        if self.preferences.hiddenProviders.contains(provider) {
+            self.preferences.hiddenProviders.remove(provider)
+        } else {
+            self.preferences.hiddenProviders.insert(provider)
+        }
     }
 }
