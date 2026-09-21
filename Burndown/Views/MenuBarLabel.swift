@@ -150,7 +150,7 @@ nonisolated struct MenuBarRow: Identifiable, Sendable {
             case .lastActive:
                 monitor.recentlyActiveProviders.first { !selectedProviders.contains($0) }
             case let .provider(preferred):
-                selectedProviders.contains(preferred) ? nil : preferred
+                selectedProviders.contains(preferred) || !monitor.visibleProviders.contains(preferred) ? nil : preferred
             }
 
             guard let provider else { return nil }

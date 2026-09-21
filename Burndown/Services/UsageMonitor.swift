@@ -21,8 +21,13 @@ final class UsageMonitor {
         self.visibleProviders.compactMap { self.state(for: $0).snapshot?.capturedAt }.min()
     }
 
+    /// Signed-in providers the person hasn't hidden. This is the set every menu bar surface — the
+    /// icon label and the dropdown alike — draws from, so hiding a provider removes it from both at
+    /// once.
     var visibleProviders: [Provider] {
-        Provider.allCases.filter { self.state(for: $0).error != .notSignedIn }
+        Provider.allCases.filter {
+            self.state(for: $0).error != .notSignedIn && !Preferences.shared.hiddenProviders.contains($0)
+        }
     }
 
     /// Orders the popover around the information each provider can currently show: a useful chart,
@@ -59,7 +64,9 @@ final class UsageMonitor {
     }
 
     var missingProviders: [Provider] {
-        Provider.allCases.filter { self.state(for: $0).error == .notSignedIn }
+        Provider.allCases.filter {
+            self.state(for: $0).error == .notSignedIn && !Preferences.shared.hiddenProviders.contains($0)
+        }
     }
 
     var soonestLimit: (provider: Provider, window: QuotaWindow)? {

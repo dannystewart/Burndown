@@ -19,8 +19,7 @@ struct QuotaCard: View {
             self.headline
             self.bar
 
-            // Historical movement alone is not enough: the chart needs a meaningful current
-            // projection. Otherwise the bar and summary already say everything a flat line could.
+            // Historical movement alone is not enough: the chart needs a meaningful current            // projection. Otherwise the bar and summary already say everything a flat line could.
             if self.samples.count >= 2, self.analysis.isChartWorthy {
                 BurndownChart(
                     provider: self.provider,
@@ -29,8 +28,6 @@ struct QuotaCard: View {
                     analysis: self.analysis,
                 )
             }
-
-            self.summary
         }
         .padding(10)
         .background(.quaternary.opacity(0.35), in: .rect(cornerRadius: 8))
@@ -46,16 +43,32 @@ struct QuotaCard: View {
     }
 
     private var header: some View {
-        HStack {
+        HStack(alignment: .firstTextBaseline) {
             Text(self.window.displayName.uppercased())
                 .font(.system(size: 9, weight: .semibold))
                 .foregroundStyle(Color.mutedText)
                 .tracking(0.6)
             Spacer()
+            self.resetLine
+        }
+        .font(.system(size: 9))
+        .monospacedDigit()
+    }
+
+    /// The countdown to reset, and — when the current pace burns through the window first — the
+    /// exhaustion time in the same breath, in red, since that's the deadline that actually matters.
+    @ViewBuilder
+    private var resetLine: some View {
+        if let exhaustion = self.analysis.exhaustionDate {
+            HStack(spacing: 4) {
+                Text("Resets in \(Format.duration(self.window.resetsAt.timeIntervalSince(self.now)))")
+                Text("(runs out in \(Format.duration(exhaustion.timeIntervalSince(self.now))))")
+                    .foregroundStyle(.red)
+            }
+            .foregroundStyle(.red)
+        } else {
             Text("Resets in \(Format.duration(self.window.resetsAt.timeIntervalSince(self.now)))")
-                .font(.system(size: 9))
                 .foregroundStyle(Color.mutedText)
-                .monospacedDigit()
         }
     }
 
@@ -81,54 +94,5 @@ struct QuotaCard: View {
             }
         }
         .frame(height: 4)
-    }
-
-    /// How fast the quota is going, then whether that's a problem.
-    ///
-    /// One line rather than three. The used percentage is already the headline above, and the gap
-    /// from steady burn is only that number subtracted from the elapsed fraction, so spelling out
-    /// the rate, the comparison, and the difference was the same fact stated three ways. What's
-    /// left is a measurement and a verdict, and pushing them to opposite edges separates the two
-    /// without spending another row on it.
-    private var summary: some View {
-        HStack(alignment: .firstTextBaseline, spacing: 8) {
-            self.paceLine
-            Spacer(minLength: 8)
-            self.projectionLine
-        }
-        .font(.system(size: 9))
-        .monospacedDigit()
-    }
-
-    /// The burn rate, and whether it's heavier or lighter than spending the window evenly.
-    ///
-    /// "Under" and "over" rather than "behind" and "ahead of" steady burn: falling behind sounds
-    /// like the bad case everywhere else, and here it's the good one.
-    private var paceLine: some View {
-        Group {
-            if let rate = self.analysis.burnRate {
-                let delta = self.analysis.paceDeltaPoints
-                let comparison = "\(Format.percent(abs(delta))) \(delta >= 0 ? "over" : "under") pace"
-                HStack(spacing: 4) {
-                    Text("\(Format.rate(rate.value))%\(rate.unit.suffix)")
-                    Text("·")
-                    Text(comparison)
-                }
-            } else {
-                Text("Establishing pace")
-            }
-        }
-        .foregroundStyle(self.analysis.willRunOutBeforeReset ? .orange : Color.mutedText)
-    }
-
-    @ViewBuilder
-    private var projectionLine: some View {
-        if let exhaustion = self.analysis.exhaustionDate {
-            Text("Runs out in \(Format.duration(exhaustion.timeIntervalSince(self.now))) (\(Format.dayAndTime(exhaustion)))")
-                .foregroundStyle(.red)
-        } else if self.analysis.burnRate != nil {
-            Text("On track — \(Format.percent(self.analysis.projectedRemainingAtReset)) left at reset")
-                .foregroundStyle(Color.mutedText)
-        }
     }
 }
