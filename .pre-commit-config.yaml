@@ -26,7 +26,7 @@ repos:
         stages: [post-commit]
 
   - repo: https://github.com/nicklockwood/SwiftFormat
-    rev: 0.63.0
+    rev: 0.63.1
     hooks:
       - id: swiftformat
         args: [--config, .swiftformat]
