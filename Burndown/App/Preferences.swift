@@ -29,8 +29,8 @@ final class Preferences {
         didSet { Self.defaults.set(self.menuBarColorMode.rawValue, forKey: Key.menuBarColorMode) }
     }
 
-    /// The same format drives both layouts: a single row per provider, or a two-part stack under one
-    /// icon when only one provider is shown.
+    /// The same format drives both layouts: a single row per provider, or a two-part stack under
+    /// one icon when only one provider is shown.
     var menuBarFormat: MenuBarFormat {
         didSet { Self.defaults.set(self.menuBarFormat.rawValue, forKey: Key.menuBarFormat) }
     }

@@ -32,7 +32,8 @@ final class UsageMonitor {
 
     /// Orders the popover around the information each provider can currently show: a useful chart,
     /// then a headline card, then compact rows. Within each group, the account with more guaranteed
-    /// headroom leads, using its lowest remaining window rather than hiding a tight secondary limit.
+    /// headroom leads, using its lowest remaining window rather than hiding a tight secondary
+    /// limit.
     var orderedVisibleProviders: [Provider] {
         self.visibleProviders.sorted { lhs, rhs in
             let leftPresentation = self.presentationRank(for: lhs)

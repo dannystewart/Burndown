@@ -12,7 +12,7 @@ actor UsageRecorder {
     private var states: Dictionary = .init(uniqueKeysWithValues: Provider.allCases.map { ($0, ProviderState.loading) })
     private var lastAttempt: [Provider: Date] = [:]
     private var refreshingProviders: Set<Provider> = []
-    private var schedulerTask: Task<Void, Never>? = nil
+    private var schedulerTask: Task<Void, Never>?
 
     private static func isFreshEnough(_ snapshot: UsageSnapshot) -> Bool {
         Date.now.timeIntervalSince(snapshot.capturedAt) < self.stalenessGrace

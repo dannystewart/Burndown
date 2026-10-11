@@ -47,7 +47,7 @@ nonisolated struct AgentDashboard: Codable, Sendable {
 
 /// Maintains the menu app's authenticated connection to the recorder process.
 actor AgentClient {
-    private var session: XPCSession? = nil
+    private var session: XPCSession?
 
     func request(_ operation: AgentOperation) async throws -> AgentDashboard {
         let session: XPCSession
