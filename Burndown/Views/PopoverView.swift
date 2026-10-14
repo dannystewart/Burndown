@@ -56,6 +56,14 @@ struct PopoverView: View {
                     ForEach(self.monitor.orderedVisibleProviders) { provider in
                         ProviderSection(provider: provider, monitor: self.monitor)
                     }
+                    .reorderable()
+                }
+                .reorderContainer(for: Provider.self) { difference in
+                    let destinationID: Provider.ID? = switch difference.destination.position {
+                    case let .before(id): id
+                    case .end: nil
+                    }
+                    Preferences.shared.moveProviders(withIDs: difference.sources, before: destinationID)
                 }
                 .padding(12)
                 .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { self.contentHeight = $0 }

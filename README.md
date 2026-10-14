@@ -13,6 +13,8 @@ This is a personal project, not supported but shared (unlicensed) in case it's u
 
 Expanded cards show a chart of the selected window built from recorded history, or a recording-history note until enough samples exist.
 
+Drag provider sections in the popover to arrange them. The manual order is saved between launches, retains hidden providers' positions, and never changes when usage updates or a different timeframe is expanded.
+
 ## Credentials and Privacy
 
 Burndown reads the credentials the provider apps and CLIs already store on your machine:

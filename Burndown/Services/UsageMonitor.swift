@@ -30,25 +30,10 @@ final class UsageMonitor {
         }
     }
 
-    /// Orders the popover around the information each provider can currently show: a useful chart,
-    /// then a headline card, then compact rows. Within each group, the account with more guaranteed
-    /// headroom leads, using its lowest remaining window rather than hiding a tight secondary
-    /// limit.
+    /// The popover order is manual: changing a timeframe or receiving new usage never moves a row.
     var orderedVisibleProviders: [Provider] {
-        self.visibleProviders.sorted { lhs, rhs in
-            let leftPresentation = self.presentationRank(for: lhs)
-            let rightPresentation = self.presentationRank(for: rhs)
-            if leftPresentation != rightPresentation {
-                return leftPresentation < rightPresentation
-            }
-
-            let leftRemaining = self.minimumRemainingPercent(for: lhs)
-            let rightRemaining = self.minimumRemainingPercent(for: rhs)
-            if leftRemaining != rightRemaining {
-                return leftRemaining > rightRemaining
-            }
-            return lhs.rawValue < rhs.rawValue
-        }
+        let visible = Set(self.visibleProviders)
+        return Preferences.shared.providerOrder.filter { visible.contains($0) }
     }
 
     /// The providers whose quotas changed most recently. A changed reading is used instead of the
@@ -155,16 +140,6 @@ final class UsageMonitor {
         let windows = self.visibleWindows(for: provider)
         let selectedID = Preferences.shared.selectedWindowID(for: provider)
         return windows.first { $0.id == selectedID } ?? windows.first
-    }
-
-    private func presentationRank(for provider: Provider) -> Int {
-        guard let window = self.featuredWindow(for: provider) else { return 2 }
-        let samples = self.series(for: provider, window: window)
-        return samples.count >= 2 && BurnAnalysis(window: window, samples: samples).isChartWorthy ? 0 : 1
-    }
-
-    private func minimumRemainingPercent(for provider: Provider) -> Double {
-        self.state(for: provider).snapshot?.windows.map(\.remainingPercent).min() ?? -.infinity
     }
 
     private func latestUsageChange(for provider: Provider) -> Date? {

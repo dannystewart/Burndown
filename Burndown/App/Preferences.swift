@@ -16,6 +16,7 @@ final class Preferences {
         static let preferredSecondProvider = "preferredSecondProvider"
         static let hiddenProviders = "hiddenProviders"
         static let selectedWindows = "selectedWindows"
+        static let providerOrder = "providerOrder"
     }
 
     static let shared: Preferences = .init()
@@ -54,6 +55,11 @@ final class Preferences {
         }
     }
 
+    /// Includes hidden and unsigned-in providers so their positions aren't lost when they return.
+    private(set) var providerOrder: [Provider] {
+        didSet { Self.defaults.set(self.providerOrder.map(\.rawValue), forKey: Key.providerOrder) }
+    }
+
     /// Window identities survive resets, and remain saved even when a provider is hidden or absent.
     private var selectedWindows: [String: String] {
         didSet { Self.defaults.set(self.selectedWindows, forKey: Key.selectedWindows) }
@@ -69,6 +75,9 @@ final class Preferences {
             (Self.defaults.stringArray(forKey: Key.hiddenProviders) ?? []).compactMap(Provider.init(rawValue:)),
         )
         self.selectedWindows = Self.defaults.dictionary(forKey: Key.selectedWindows) as? [String: String] ?? [:]
+        let savedOrder = (Self.defaults.stringArray(forKey: Key.providerOrder) ?? []).compactMap(Provider.init(rawValue:))
+        var seen = Set<Provider>()
+        self.providerOrder = (savedOrder + Provider.allCases).filter { seen.insert($0).inserted }
     }
 
     private nonisolated static func read<Value: RawRepresentable>(_ key: String) -> Value?
@@ -83,5 +92,15 @@ final class Preferences {
 
     func selectWindow(_ window: QuotaWindow, for provider: Provider) {
         self.selectedWindows[provider.rawValue] = window.id
+    }
+
+    func moveProviders(withIDs ids: [Provider.ID], before destinationID: Provider.ID?) {
+        let movingIDs = Set(ids)
+        let moved = self.providerOrder.filter { movingIDs.contains($0.id) }
+        guard !moved.isEmpty, destinationID.map({ !movingIDs.contains($0) }) ?? true else { return }
+        var order = self.providerOrder.filter { !movingIDs.contains($0.id) }
+        let destination = order.firstIndex { $0.id == destinationID } ?? order.endIndex
+        order.insert(contentsOf: moved, at: destination)
+        self.providerOrder = order
     }
 }

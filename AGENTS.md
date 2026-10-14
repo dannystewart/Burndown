@@ -29,6 +29,7 @@ The providers expose only their current quota state. Burndown creates its own hi
 - Transient provider failures may continue showing a recent snapshot. Credential failures are surfaced immediately. Preserve that distinction when changing refresh behavior.
 - Keep user-facing behavior consistent between the popover, warning color, and menu-bar limit selection by routing all pace decisions through `BurnAnalysis`.
 - `Preferences` saves each provider's selected window by its stable `QuotaWindow.id`, independently of provider visibility. `UsageMonitor.featuredWindow(for:)` resolves that selection for both the expanded popover card and menu bar, falling back to the shortest visible window without erasing a temporarily unavailable selection.
+- Popover provider order is manual, persisted by `Preferences.providerOrder`, including hidden and unsigned-in providers. Apply drag moves to that full order rather than replacing it with the visible subset; usage and timeframe changes must never reorder provider sections.
 
 ## Implementation Style
 
