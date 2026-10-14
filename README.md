@@ -8,10 +8,10 @@ This is a personal project, not supported but shared (unlicensed) in case it's u
 
 ## What It Shows
 
-- **Menu bar:** used or remaining percentage for whichever window is closest to running out, for one provider or a row each for two. A two-part format stacks its percentage and reset time under a single icon when only one provider is shown. Configurable to show time remaining, reset time, or a combination, with color that either stays on, appears only when a window gets low, or stays off entirely.
-- **Popover:** every provider's windows — five-hour, weekly, and monthly, depending on which a provider reports. The window closest to running out gets a full card with burn rate and projected exhaustion, and a chart of the current window built from recorded history. The provider's other windows get one line each: how much is left and when it comes back.
+- **Menu bar:** used or remaining percentage for the window expanded in the popover, for one provider or a row each for two. A two-part format stacks its percentage and reset time under a single icon when only one provider is shown. Configurable to show time remaining, reset time, or a combination, with color that either stays on, appears only when a window gets low, or stays off entirely.
+- **Popover:** every provider's windows — five-hour, weekly, and monthly, depending on which a provider reports. Click a window to expand its full card while the others collapse, with an animated transition. The expanded window also drives that provider's menu bar percentage, countdown, and warning color. Each provider's selection is remembered between launches, including when hidden and shown again.
 
-Charts are drawn for five-hour windows only. Across a week or a month the line is close to flat at this size, and the bar and the projection say the same thing in less space.
+Expanded cards show a chart of the selected window built from recorded history, or a recording-history note until enough samples exist.
 
 ## Credentials and Privacy
 

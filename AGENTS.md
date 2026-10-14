@@ -28,6 +28,7 @@ The providers expose only their current quota state. Burndown creates its own hi
 - Credentials are read from the stores used by the provider CLIs. Never write, refresh, rotate, persist, or log access tokens. Burndown stores quota percentages and timestamps only.
 - Transient provider failures may continue showing a recent snapshot. Credential failures are surfaced immediately. Preserve that distinction when changing refresh behavior.
 - Keep user-facing behavior consistent between the popover, warning color, and menu-bar limit selection by routing all pace decisions through `BurnAnalysis`.
+- `Preferences` saves each provider's selected window by its stable `QuotaWindow.id`, independently of provider visibility. `UsageMonitor.featuredWindow(for:)` resolves that selection for both the expanded popover card and menu bar, falling back to the shortest visible window without erasing a temporarily unavailable selection.
 
 ## Implementation Style
 

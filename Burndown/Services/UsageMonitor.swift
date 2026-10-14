@@ -139,19 +139,28 @@ final class UsageMonitor {
         }
     }
 
+    /// Idle rolling sessions have no useful reset or history. Keep the other windows selectable.
+    func visibleWindows(for provider: Provider) -> [QuotaWindow] {
+        let windows = self.state(for: provider).snapshot?.windows ?? []
+        return windows
+            .filter {
+                $0.kind != .session || !provider.windowRolls($0.kind) || $0.usedPercent > 0
+            }
+            .sorted { $0.duration < $1.duration }
+    }
+
+    /// Both the expanded card and menu bar use this window. A missing selection falls back without
+    /// overwriting the saved identity, so it returns when the provider reports that window again.
+    func featuredWindow(for provider: Provider) -> QuotaWindow? {
+        let windows = self.visibleWindows(for: provider)
+        let selectedID = Preferences.shared.selectedWindowID(for: provider)
+        return windows.first { $0.id == selectedID } ?? windows.first
+    }
+
     private func presentationRank(for provider: Provider) -> Int {
         guard let window = self.featuredWindow(for: provider) else { return 2 }
         let samples = self.series(for: provider, window: window)
         return samples.count >= 2 && BurnAnalysis(window: window, samples: samples).isChartWorthy ? 0 : 1
-    }
-
-    private func featuredWindow(for provider: Provider) -> QuotaWindow? {
-        guard let snapshot = self.state(for: provider).snapshot else { return nil }
-        let ordered = snapshot.windows.sorted { $0.duration < $1.duration }
-        if let session = ordered.first(where: { $0.kind == .session }) {
-            return session.usedPercent > 0 ? session : nil
-        }
-        return ordered.first
     }
 
     private func minimumRemainingPercent(for provider: Provider) -> Double {

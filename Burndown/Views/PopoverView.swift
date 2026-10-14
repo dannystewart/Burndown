@@ -80,6 +80,8 @@ struct PopoverView: View {
 
 /// One provider's windows, or an explanation of why there aren't any.
 private struct ProviderSection: View {
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
     let provider: Provider
     let monitor: UsageMonitor
 
@@ -100,7 +102,7 @@ private struct ProviderSection: View {
                 if snapshot.windows.isEmpty {
                     self.note("No quota windows reported")
                 } else {
-                    self.windows(of: snapshot)
+                    self.windows
                 }
             }
         }
@@ -125,43 +127,30 @@ private struct ProviderSection: View {
         }
     }
 
-    /// One window in full — with its chart when history exists — and the rest as a line each,
-    /// shortest window first.
-    ///
-    /// The session window leads when one is present. A provider with no session window (Codex,
-    /// Cursor) features its nearest limit instead, so its available history remains visible.
-    ///
-    /// A rolling session window that isn't active — OpenCode Go's, while nothing has been used in
-    /// the last five hours — is dropped entirely rather than shown at 0%: its number is
-    /// uninformative, its reset time is meaningless, and it has no history to chart. It reappears,
-    /// as the primary card, the moment usage anchors it.
-    @ViewBuilder
-    private func windows(of snapshot: UsageSnapshot) -> some View {
-        let ordered = snapshot.windows.sorted { $0.duration < $1.duration }
-        let session = ordered.first { $0.kind == .session }
-        let sessionActive = session.map(self.isActive) ?? false
-        let hasSession = session != nil
+    /// Stable row identities let one card shrink while the selected card expands in place.
+    private var windows: some View {
+        let ordered = self.monitor.visibleWindows(for: self.provider)
+        let featured = self.monitor.featuredWindow(for: self.provider)
 
-        let featured: QuotaWindow? = if let session, sessionActive {
-            session
-        } else if hasSession {
-            nil // A session exists but is idle: no full card, only the compact rows below.
-        } else {
-            // No session window: the provider's first reported window leads. For Cursor that's the
-            // plan-spend window; for single-window providers it's simply their only window.
-            ordered.first
-        }
-
-        if let featured {
-            QuotaCard(
-                provider: self.provider,
-                window: featured,
-                samples: self.monitor.series(for: self.provider, window: featured),
-            )
-        }
-
-        ForEach(ordered.filter { self.isCompact($0, featured: featured, sessionActive: sessionActive) }) { window in
-            CompactWindowRow(window: window)
+        return VStack(spacing: 5) {
+            ForEach(ordered) { window in
+                let expanded = window.id == featured?.id
+                Button {
+                    guard !expanded else { return }
+                    withAnimation(self.reduceMotion ? nil : .smooth(duration: 0.3)) {
+                        Preferences.shared.selectWindow(window, for: self.provider)
+                    }
+                } label: {
+                    QuotaCard(
+                        provider: self.provider,
+                        window: window,
+                        samples: expanded ? self.monitor.series(for: self.provider, window: window) : [],
+                        isExpanded: expanded,
+                    )
+                }
+                .buttonStyle(.plain)
+                .accessibilityAddTraits(expanded ? [.isSelected] : [])
+            }
         }
     }
 
@@ -189,60 +178,6 @@ private struct ProviderSection: View {
         .padding(10)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(.quaternary.opacity(0.35), in: .rect(cornerRadius: 8))
-    }
-
-    /// A rolling window is only worth showing once usage has anchored it; a fixed window always is.
-    private func isActive(_ window: QuotaWindow) -> Bool {
-        if self.provider.windowRolls(window.kind) {
-            return window.usedPercent > 0
-        }
-        return true
-    }
-
-    /// Every window except the featured one gets a compact row — but an inactive session window is
-    /// hidden outright rather than demoted to a row.
-    private func isCompact(_ window: QuotaWindow, featured: QuotaWindow?, sessionActive: Bool) -> Bool {
-        if window.id == featured?.id { return false }
-        if window.kind == .session, !sessionActive { return false }
-        return true
-    }
-}
-
-// MARK: - CompactWindowRow
-
-/// A secondary window in one line: how much is left, and when it comes back.
-///
-/// Deliberately not a shrunken `QuotaCard`. The card exists to answer whether the current pace is a
-/// problem, which takes a chart and a projection; a window that isn't the nearest limit only has to
-/// confirm it isn't in trouble, and the severity color does most of that before the text is read.
-private struct CompactWindowRow: View {
-    let window: QuotaWindow
-
-    var body: some View {
-        HStack(spacing: 6) {
-            Text(self.window.displayName.uppercased())
-                .font(.system(size: 9, weight: .semibold))
-                .foregroundStyle(Color.mutedText)
-                .tracking(0.6)
-
-            Text(Format.percent(self.window.remainingPercent))
-                .font(.system(size: 11, weight: .semibold))
-                .monospacedDigit()
-                .foregroundStyle(self.window.severityColor)
-
-            Spacer(minLength: 8)
-
-            // Matches the card's countdown cadence so the two never disagree on screen.
-            TimelineView(.periodic(from: .now, by: 15)) { context in
-                Text("Resets in \(Format.duration(self.window.resetsAt.timeIntervalSince(context.date)))")
-                    .font(.system(size: 9))
-                    .foregroundStyle(Color.mutedText)
-                    .monospacedDigit()
-            }
-        }
-        .padding(.horizontal, 10)
-        .padding(.vertical, 6)
-        .background(.quaternary.opacity(0.2), in: .rect(cornerRadius: 6))
     }
 }
 

@@ -8,6 +8,7 @@ struct QuotaCard: View {
     let provider: Provider
     let window: QuotaWindow
     let samples: [UsageSample]
+    var isExpanded = true
 
     private var analysis: BurnAnalysis {
         BurnAnalysis(window: self.window, samples: self.samples, now: self.now)
@@ -16,22 +17,34 @@ struct QuotaCard: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 7) {
             self.header
-            self.headline
-            self.bar
+            if self.isExpanded {
+                VStack(alignment: .leading, spacing: 7) {
+                    self.headline
+                    self.bar
 
-            if self.samples.count >= 2 {
-                BurndownChart(
-                    provider: self.provider,
-                    window: self.window,
-                    samples: self.samples,
-                    analysis: self.analysis,
-                )
-            } else {
-                self.awaitingHistory
+                    if self.samples.count >= 2 {
+                        BurndownChart(
+                            provider: self.provider,
+                            window: self.window,
+                            samples: self.samples,
+                            analysis: self.analysis,
+                        )
+                    } else {
+                        self.awaitingHistory
+                    }
+                }
+                .transition(.opacity)
             }
         }
-        .padding(10)
-        .background(.quaternary.opacity(0.35), in: .rect(cornerRadius: 8))
+        .padding(.horizontal, 10)
+        .padding(.vertical, self.isExpanded ? 10 : 6)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(
+            .quaternary.opacity(self.isExpanded ? 0.35 : 0.2),
+            in: .rect(cornerRadius: self.isExpanded ? 8 : 6),
+        )
+        .clipped()
+        .contentShape(.rect)
         .task {
             // This view can persist while the popover is closed. Rebase immediately when it becomes
             // visible again, then keep the countdown and projection moving between usage polls.
@@ -44,13 +57,24 @@ struct QuotaCard: View {
     }
 
     private var header: some View {
-        HStack(alignment: .firstTextBaseline) {
+        HStack(alignment: .firstTextBaseline, spacing: 6) {
             Text(self.window.displayName.uppercased())
                 .font(.system(size: 9, weight: .semibold))
                 .foregroundStyle(Color.mutedText)
                 .tracking(0.6)
+            if !self.isExpanded {
+                Text(Format.percent(self.window.remainingPercent))
+                    .font(.system(size: 11, weight: .semibold))
+                    .foregroundStyle(self.window.severityColor)
+                    .transition(.opacity)
+            }
             Spacer()
-            self.resetLine
+            if self.isExpanded {
+                self.resetLine
+            } else {
+                Text("Resets in \(Format.duration(self.window.resetsAt.timeIntervalSince(self.now)))")
+                    .foregroundStyle(Color.mutedText)
+            }
         }
         .font(.system(size: 9))
         .monospacedDigit()

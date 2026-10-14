@@ -15,6 +15,7 @@ final class Preferences {
         static let preferredProvider = "preferredProvider"
         static let preferredSecondProvider = "preferredSecondProvider"
         static let hiddenProviders = "hiddenProviders"
+        static let selectedWindows = "selectedWindows"
     }
 
     static let shared: Preferences = .init()
@@ -53,6 +54,11 @@ final class Preferences {
         }
     }
 
+    /// Window identities survive resets, and remain saved even when a provider is hidden or absent.
+    private var selectedWindows: [String: String] {
+        didSet { Self.defaults.set(self.selectedWindows, forKey: Key.selectedWindows) }
+    }
+
     private init() {
         self.menuBarLayout = Self.read(Key.menuBarLayout) ?? .singleProvider
         self.menuBarColorMode = Self.read(Key.menuBarColorMode) ?? .whenLow
@@ -62,11 +68,20 @@ final class Preferences {
         self.hiddenProviders = Set(
             (Self.defaults.stringArray(forKey: Key.hiddenProviders) ?? []).compactMap(Provider.init(rawValue:)),
         )
+        self.selectedWindows = Self.defaults.dictionary(forKey: Key.selectedWindows) as? [String: String] ?? [:]
     }
 
     private nonisolated static func read<Value: RawRepresentable>(_ key: String) -> Value?
         where Value.RawValue == String
     {
         self.defaults.string(forKey: key).flatMap(Value.init(rawValue:))
+    }
+
+    func selectedWindowID(for provider: Provider) -> String? {
+        self.selectedWindows[provider.rawValue]
+    }
+
+    func selectWindow(_ window: QuotaWindow, for provider: Provider) {
+        self.selectedWindows[provider.rawValue] = window.id
     }
 }

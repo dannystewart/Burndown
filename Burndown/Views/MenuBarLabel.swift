@@ -155,7 +155,7 @@ nonisolated struct MenuBarRow: Identifiable, Sendable {
 
             guard let provider else { return nil }
             selectedProviders.insert(provider)
-            guard let window = monitor.soonestLimit(for: provider) else { return nil }
+            guard let window = monitor.featuredWindow(for: provider) else { return nil }
             return Self.row(
                 id: provider.rawValue,
                 provider: provider,
@@ -175,11 +175,8 @@ nonisolated struct MenuBarRow: Identifiable, Sendable {
         monitor: UsageMonitor,
         format: MenuBarFormat,
     ) -> MenuBarRow {
-        let paceWarning = Self.paceWindow(for: provider, in: monitor)
-            .map { window in
-                let samples = monitor.series(for: provider, window: window)
-                return BurnAnalysis(window: window, samples: samples).willRunOutBeforeReset
-            } ?? false
+        let samples = monitor.series(for: provider, window: window)
+        let paceWarning = BurnAnalysis(window: window, samples: samples).willRunOutBeforeReset
         return MenuBarRow(
             id: id,
             symbol: provider.symbolName,
@@ -189,13 +186,6 @@ nonisolated struct MenuBarRow: Identifiable, Sendable {
                 : window.severityColor,
             isWarning: window.isLow || paceWarning,
         )
-    }
-
-    /// Pace warnings follow the shortest period the provider exposes: five-hour, then seven-day.
-    @MainActor
-    private static func paceWindow(for provider: Provider, in monitor: UsageMonitor) -> QuotaWindow? {
-        let snapshot = monitor.state(for: provider).snapshot
-        return snapshot?.window(.session) ?? snapshot?.window(.weekly)
     }
 }
 
