@@ -13,6 +13,8 @@ This is a personal project, not supported but shared (unlicensed) in case it's u
 
 Expanded cards show a chart of the selected window built from recorded history, or a recording-history note until enough samples exist.
 
+Warning colors reflect forecast risk: below 90% used, orange appears only when the observed pace predicts exhaustion before reset. At 90% used and above, orange stays on, turning red only when exhaustion is forecast. Exhausted windows stay red in the popover, but their menu bar row becomes subdued and shows “Resets in …” instead of a percentage. Menu bar color preferences still apply.
+
 Drag provider sections in the popover to arrange them. The manual order is saved between launches, retains hidden providers' positions, and never changes when usage updates or a different timeframe is expanded.
 
 ## Credentials and Privacy

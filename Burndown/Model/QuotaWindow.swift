@@ -47,6 +47,9 @@ nonisolated enum QuotaWindowKind: String, Codable, Sendable, CaseIterable, Ident
 
 /// A single rolling quota window as reported by a provider.
 nonisolated struct QuotaWindow: Codable, Sendable, Hashable, Identifiable {
+    /// Near-empty windows rank first for limit selection, independently of warning colors.
+    static let criticalThreshold: Double = 15
+
     let kind: QuotaWindowKind
     /// Percentage of the quota consumed, 0...100.
     let usedPercent: Double

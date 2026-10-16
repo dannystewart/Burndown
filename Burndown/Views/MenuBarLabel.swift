@@ -90,7 +90,8 @@ struct MenuBarLabel: View {
     private func color(for row: MenuBarRow, colored: Bool) -> Color {
         // A template image is used purely as a mask, so what it's filled with only has to be
         // opaque.
-        guard colored else { return .black }
+        guard colored else { return .black.opacity(row.isExhausted ? 0.45 : 1) }
+        if row.isExhausted { return .secondary }
         // In "when low" the point is that color marks the exception; anything that isn't warning
         // should read as though it were still following the menu bar.
         if self.preferences.menuBarColorMode == .whenLow, !row.isWarning {
@@ -121,6 +122,7 @@ nonisolated struct MenuBarRow: Identifiable, Sendable {
     /// What this row would be colored if color were switched on.
     let severity: Color
     let isWarning: Bool
+    var isExhausted = false
 
     @MainActor
     static func rows(
@@ -176,15 +178,17 @@ nonisolated struct MenuBarRow: Identifiable, Sendable {
         format: MenuBarFormat,
     ) -> MenuBarRow {
         let samples = monitor.series(for: provider, window: window)
-        let paceWarning = BurnAnalysis(window: window, samples: samples).willRunOutBeforeReset
+        let now = Date.now
+        let status = BurnAnalysis(window: window, samples: samples, now: now).status
         return MenuBarRow(
             id: id,
             symbol: provider.symbolName,
-            parts: format.parts(for: window, asOf: .now),
-            severity: paceWarning && window.remainingPercent >= QuotaWindow.criticalThreshold
-                ? .orange
-                : window.severityColor,
-            isWarning: window.isLow || paceWarning,
+            parts: status == .exhausted
+                ? [String(localized: "Resets in \(Format.duration(window.resetsAt.timeIntervalSince(now)))")]
+                : format.parts(for: window, asOf: now),
+            severity: status.severityColor,
+            isWarning: status.isWarning,
+            isExhausted: status == .exhausted,
         )
     }
 }

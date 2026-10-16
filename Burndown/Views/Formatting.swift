@@ -96,20 +96,15 @@ extension Provider {
     }
 }
 
-extension QuotaWindow {
-    /// Below this much headroom a window is worth noticing; below `critical` it's worth worrying.
-    static let warningThreshold: Double = 40
-    static let criticalThreshold: Double = 15
-
-    /// Color by how much headroom is left, so urgency reads before any of the text does.
+extension BurnAnalysis.Status {
     var severityColor: Color {
-        switch self.remainingPercent {
-        case ..<Self.criticalThreshold: .red
-        case ..<Self.warningThreshold: .orange
-        default: .green
+        switch self {
+        case .normal: .green
+        case .warning: .orange
+        case .critical: .red
+        case .exhausted: .secondary
         }
     }
 
-    /// Whether this window has crossed into territory the menu bar should call out.
-    var isLow: Bool { self.remainingPercent < Self.warningThreshold }
+    var isWarning: Bool { self == .warning || self == .critical }
 }

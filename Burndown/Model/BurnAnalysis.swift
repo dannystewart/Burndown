@@ -6,6 +6,13 @@ import Foundation
 /// window commonly opens because one request consumed quota; extrapolating that initial burst from
 /// the window's start makes a brand-new window look certain to run out.
 nonisolated struct BurnAnalysis: Sendable {
+    enum Status: Sendable {
+        case normal
+        case warning
+        case critical
+        case exhausted
+    }
+
     /// Too early in a window to divide by elapsed time without producing nonsense.
     private static let minimumElapsedHours: Double = 1.0 / 60
     /// A short weekly observation should not be extrapolated as round-the-clock activity.
@@ -108,6 +115,15 @@ nonisolated struct BurnAnalysis: Sendable {
     }
 
     var willRunOutBeforeReset: Bool { self.exhaustionDate != nil }
+
+    /// Color calls attention to actionable risk, not a quota that's already spent.
+    var status: Status {
+        if self.remainingPercent <= 0 { return .exhausted }
+        if self.usedPercent >= 90 {
+            return self.willRunOutBeforeReset ? .critical : .warning
+        }
+        return self.willRunOutBeforeReset ? .warning : .normal
+    }
 
     /// How long the remaining quota lasts at the current pace, ignoring the reset.
     ///

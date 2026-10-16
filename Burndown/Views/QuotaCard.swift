@@ -14,6 +14,10 @@ struct QuotaCard: View {
         BurnAnalysis(window: self.window, samples: self.samples, now: self.now)
     }
 
+    private var severityColor: Color {
+        self.analysis.status == .exhausted ? .red : self.analysis.status.severityColor
+    }
+
     var body: some View {
         VStack(alignment: .leading, spacing: 7) {
             self.header
@@ -65,7 +69,7 @@ struct QuotaCard: View {
             if !self.isExpanded {
                 Text(Format.percent(self.window.remainingPercent))
                     .font(.system(size: 11, weight: .semibold))
-                    .foregroundStyle(self.window.severityColor)
+                    .foregroundStyle(self.severityColor)
                     .transition(.opacity)
             }
             Spacer()
@@ -81,16 +85,16 @@ struct QuotaCard: View {
     }
 
     /// The countdown to reset, and — when the current pace burns through the window first — the
-    /// exhaustion time in the same breath, in red, since that's the deadline that actually matters.
+    /// exhaustion time in the same breath, using the same risk level as the menu bar.
     @ViewBuilder
     private var resetLine: some View {
         if let exhaustion = self.analysis.exhaustionDate {
             HStack(spacing: 4) {
                 Text("Resets in \(Format.duration(self.window.resetsAt.timeIntervalSince(self.now)))")
                 Text("(runs out in \(Format.duration(exhaustion.timeIntervalSince(self.now))))")
-                    .foregroundStyle(.red)
+                    .foregroundStyle(self.severityColor)
             }
-            .foregroundStyle(.red)
+            .foregroundStyle(self.severityColor)
         } else {
             Text("Resets in \(Format.duration(self.window.resetsAt.timeIntervalSince(self.now)))")
                 .foregroundStyle(Color.mutedText)
@@ -102,7 +106,7 @@ struct QuotaCard: View {
             Text(Format.percent(self.window.remainingPercent))
                 .font(.system(size: 20, weight: .semibold))
                 .monospacedDigit()
-                .foregroundStyle(self.window.severityColor)
+                .foregroundStyle(self.severityColor)
             Text("remaining")
                 .font(.caption)
                 .foregroundStyle(Color.mutedText)
@@ -114,7 +118,7 @@ struct QuotaCard: View {
             ZStack(alignment: .leading) {
                 Capsule().fill(.quaternary)
                 Capsule()
-                    .fill(self.window.severityColor)
+                    .fill(self.severityColor)
                     .frame(width: geometry.size.width * (self.window.remainingPercent / 100))
             }
         }
