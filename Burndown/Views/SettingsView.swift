@@ -117,10 +117,8 @@ struct SettingsView: View {
                             Text(self.status(of: provider))
                                 .foregroundStyle(.secondary)
 
-                            if self.monitor.state(for: provider).error == nil {
-                                Button(self.isHidden(provider) ? "Show" : "Hide") {
-                                    self.toggleHidden(provider)
-                                }
+                            Button(self.isHidden(provider) ? "Show" : "Hide") {
+                                self.toggleHidden(provider)
                             }
                         }
                     }
