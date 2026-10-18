@@ -66,4 +66,4 @@ private final class BurndownAppDelegate: NSObject, NSApplicationDelegate {
 
 // MARK: - Logger
 
-nonisolated let logger: PolyLog = .init(capture: true)
+nonisolated let logger: PolyLog = .init()
