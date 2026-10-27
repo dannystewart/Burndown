@@ -26,7 +26,7 @@ nonisolated enum RecorderServiceStatus: Sendable, Equatable {
 
 // MARK: - BackgroundService
 
-/// Registers the launchd-managed recorder and migrates away from launching the UI at login.
+/// Registers the launchd-managed recorder independently of the menu bar app's login item.
 @MainActor
 enum BackgroundService {
     static var status: RecorderServiceStatus {
@@ -55,8 +55,7 @@ enum BackgroundService {
         FileManager.default.fileExists(atPath: self.bundledPlistURL.path)
     }
 
-    /// Registration is idempotent. Once the agent is eligible to run, the old main-app login item
-    /// is removed so logging in never opens the menu bar UI.
+    /// Registration is idempotent and leaves the user's main-app login item unchanged.
     static func prepare() -> RecorderServiceStatus {
         guard self.hasBundledPlist else {
             logger.error("Background recorder plist is missing at \(self.bundledPlistURL.path)")
@@ -78,16 +77,7 @@ enum BackgroundService {
             }
         }
 
-        let status = self.status
-        if status == .enabled, SMAppService.mainApp.status != .notRegistered {
-            do {
-                try SMAppService.mainApp.unregister()
-                logger.info("Removed the legacy UI login item.")
-            } catch {
-                logger.warning("Couldn't remove the legacy UI login item: \(error.localizedDescription)")
-            }
-        }
-        return status
+        return self.status
     }
 
     static func openLoginItemsSettings() {

@@ -20,6 +20,7 @@ The providers expose only their current quota state. Burndown creates its own hi
 ## Architecture and Invariants
 
 - `UsageRecorder` owns provider polling and persistence inside the launchd-managed agent process. `UsageMonitor` only mirrors that state into the menu bar app over XPC; it never polls or writes, so closing the UI has no effect on history collection. Provider clients and model value types remain nonisolated and sendable where possible.
+- `LoginItem` manages the optional main-app login item through `SMAppService.mainApp`, using system registration as the source of truth. Background recorder registration must leave that selection unchanged.
 - Provider clients are dispatched through `UsageProviderRegistry`, not a switch. Adding a provider is a `Provider` case plus a registry entry; leave the poll loop alone.
 - Provider APIs report snapshots, not history. Do not imply that historical data can be recovered when Burndown was not running.
 - `SampleStore` records changed readings and periodic keyframes, retains eight days, and separates periods by reset time. Reset timestamps may jitter; comparisons intentionally tolerate 120 seconds.

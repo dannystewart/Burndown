@@ -17,6 +17,10 @@ Warning colors reflect forecast risk: below 90% used, orange appears only when t
 
 Drag provider sections in the popover to arrange them. The manual order is saved between launches, retains hidden providers' positions, and never changes when usage updates or a different timeframe is expanded.
 
+## Startup
+
+Enable **Launch at Login** at the top of **Settings → General** to open Burndown in the menu bar when you log in. This is optional and separate from the background recorder, which continues collecting history even when the menu bar app is closed. If macOS requires approval, Settings provides a shortcut to Login Items in System Settings.
+
 ## Credentials and Privacy
 
 Burndown reads the credentials the provider apps and CLIs already store on your machine:

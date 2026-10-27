@@ -1,5 +1,8 @@
 import PolyKit
+import ServiceManagement
 import SwiftUI
+
+// MARK: - SettingsView
 
 /// The settings window, opened from the popover's gear.
 struct SettingsView: View {
@@ -29,6 +32,7 @@ struct SettingsView: View {
         PolySettingsTabs(selection: self.$selectedTab) {
             PolySettingsTab("General", systemImage: "gearshape", tag: SettingsTab.general) {
                 self.menuBarSection
+                PreferredProvidersSection(preferences: self.preferences)
                 self.backgroundMonitorSection
             }
 
@@ -68,28 +72,15 @@ struct SettingsView: View {
     }
 
     private var menuBarSection: some View {
-        Section("Menu Bar") {
+        Section("Menu Bar Item") {
+            LoginItemRows()
+
             PolyPickerRow(
                 "Layout",
-                description: "Single Provider shows one provider; Two Providers shows one per row",
                 selection: Bindable(self.preferences).menuBarLayout,
             ) {
                 ForEach(MenuBarLayout.allCases) { layout in
                     Text(layout.displayName).tag(layout)
-                }
-            }
-
-            PolyPickerRow("Preferred Provider", selection: Bindable(self.preferences).preferredProvider) {
-                ForEach(MenuBarProviderSelection.allCases) { selection in
-                    Text(selection.displayName).tag(selection)
-                }
-            }
-
-            if self.preferences.menuBarLayout == .twoProviders {
-                PolyPickerRow("Preferred Second Provider", selection: Bindable(self.preferences).preferredSecondProvider) {
-                    ForEach(MenuBarProviderSelection.allCases) { selection in
-                        Text(selection.displayName).tag(selection)
-                    }
                 }
             }
 
@@ -176,6 +167,68 @@ struct SettingsView: View {
             self.preferences.hiddenProviders.remove(provider)
         } else {
             self.preferences.hiddenProviders.insert(provider)
+        }
+    }
+}
+
+// MARK: - PreferredProvidersSection
+
+private struct PreferredProvidersSection: View {
+    let preferences: Preferences
+
+    var body: some View {
+        Section("Preferred Providers") {
+            PolyPickerRow("Primary", selection: Bindable(self.preferences).preferredProvider) {
+                ForEach(MenuBarProviderSelection.allCases) { selection in
+                    Text(selection.displayName).tag(selection)
+                }
+            }
+
+            if self.preferences.menuBarLayout == .twoProviders {
+                PolyPickerRow("Secondary", selection: Bindable(self.preferences).preferredSecondProvider) {
+                    ForEach(MenuBarProviderSelection.allCases) { selection in
+                        Text(selection.displayName).tag(selection)
+                    }
+                }
+            }
+        }
+    }
+}
+
+// MARK: - LoginItemRows
+
+private struct LoginItemRows: View {
+    @Environment(\.scenePhase) private var scenePhase
+    @State private var loginItem: LoginItem = .init()
+
+    var body: some View {
+        Group {
+            PolyToggleRow(
+                "Launch at Login",
+                isOn: Bindable(self.loginItem).isEnabled,
+            )
+            .disabled(self.loginItem.isUpdating)
+
+            if self.loginItem.status == .requiresApproval {
+                PolySettingsRow(description: "Allow Burndown in System Settings to finish enabling launch at login.") {
+                    Button("Open Login Items Settings") {
+                        BackgroundService.openLoginItemsSettings()
+                    }
+                }
+            }
+
+            if let errorMessage = self.loginItem.errorMessage {
+                PolySettingsRow {
+                    Text("Couldn’t change launch at login: \(errorMessage)")
+                        .foregroundStyle(.red)
+                }
+            }
+        }
+        .onAppear { self.loginItem.refresh() }
+        .onChange(of: self.scenePhase) { _, phase in
+            if phase == .active {
+                self.loginItem.refresh()
+            }
         }
     }
 }
