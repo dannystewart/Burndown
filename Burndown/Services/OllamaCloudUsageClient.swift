@@ -109,8 +109,9 @@ nonisolated enum OllamaCloudUsageClient {
     /// The first match's capture groups, without the whole-match text, plus where the match ended
     /// so position-dependent parses (the reset timestamps) can anchor on it.
     private static func firstMatch(_ pattern: String, in html: String) -> (groups: [String], upperBound: String.Index)? {
-        guard let regex = try? NSRegularExpression(pattern: pattern) else { return nil }
-        guard let match = regex.firstMatch(in: html, range: NSRange(html.startIndex..., in: html)) else { return nil }
+        guard
+            let regex = try? NSRegularExpression(pattern: pattern),
+            let match = regex.firstMatch(in: html, range: NSRange(html.startIndex..., in: html)) else { return nil }
         let groups = (1 ..< match.numberOfRanges).map { index in
             Range(match.range(at: index), in: html).map { String(html[$0]) } ?? ""
         }

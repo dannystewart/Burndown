@@ -73,8 +73,9 @@ nonisolated enum CodexUsageClient {
         // reported length and keep the first of each kind.
         var windows = [QuotaWindow]()
         for reported in [response.rateLimit?.primaryWindow, response.rateLimit?.secondaryWindow] {
-            guard let window = reported?.window() else { continue }
-            guard !windows.contains(where: { $0.kind == window.kind }) else { continue }
+            guard
+                let window = reported?.window(),
+                !windows.contains(where: { $0.kind == window.kind }) else { continue }
             windows.append(window)
         }
 

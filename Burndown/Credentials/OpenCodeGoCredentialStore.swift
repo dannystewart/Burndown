@@ -54,7 +54,11 @@ nonisolated enum OpenCodeGoCredentialStore {
             throw .credentialsUnreadable("Unrecognized OpenCode auth.json format")
         }
 
-        guard let entry = payload.opencodeGo, let apiKey = entry.key ?? entry.token, !apiKey.isEmpty else {
+        guard
+            let entry = payload.opencodeGo,
+            let apiKey = entry.key ?? entry.token,
+            !apiKey.isEmpty else
+        {
             throw .notSignedIn
         }
 
