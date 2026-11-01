@@ -7,7 +7,7 @@
       "location" : "https://github.com/dannystewart/polykit-swift",
       "state" : {
         "branch" : "main",
-        "revision" : "ea40ada97bd8020fe1a468138c09a7c9de554a9b"
+        "revision" : "5435555cccadd22b50e32b51ba51753113626f39"
       }
     },
     {
@@ -16,7 +16,7 @@
       "location" : "https://github.com/dannystewart/polylog-swift.git",
       "state" : {
         "branch" : "main",
-        "revision" : "7995922bd2c2829ddbcaa9ec84691416d31523ae"
+        "revision" : "d2fcf8d4e83d689b0e0789981c4712ece79079d3"
       }
     }
   ],
