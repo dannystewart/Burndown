@@ -12,7 +12,7 @@ struct SettingsView: View {
     }
 
     @State private var selectedTab: SettingsTab = .general
-    @State private var ollamaCookie = ""
+    @State private var ollamaAPIKey = ""
 
     let preferences: Preferences
     let monitor: UsageMonitor
@@ -119,11 +119,11 @@ struct SettingsView: View {
 
         Section {
             PolySettingsRow {
-                LabeledContent("Session Cookie") {
+                LabeledContent("API Key") {
                     HStack(spacing: 8) {
                         SecureField(
-                            text: self.$ollamaCookie,
-                            prompt: Text("aid=...; __Secure-session=..."),
+                            text: self.$ollamaAPIKey,
+                            prompt: Text("Ollama API key"),
                         ) {
                             EmptyView()
                         }
@@ -131,11 +131,11 @@ struct SettingsView: View {
                         .frame(maxWidth: 260)
 
                         Button("Save") {
-                            OllamaCloudCredentialStore.save(self.ollamaCookie)
-                            self.ollamaCookie = ""
+                            OllamaCloudCredentialStore.save(self.ollamaAPIKey)
+                            self.ollamaAPIKey = ""
                         }
                         .disabled(
-                            self.ollamaCookie.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+                            self.ollamaAPIKey.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
                                 && !OllamaCloudCredentialStore.isConfigured,
                         )
                     }
@@ -144,10 +144,10 @@ struct SettingsView: View {
         } header: {
             Text("Ollama Cloud")
         } footer: {
-            Text("Copy the Cookie header from ollama.com/settings in your browser and paste it here. Burndown only sends it to ollama.com.")
+            Text("Create an API key at ollama.com/settings/keys and paste it here. Burndown only sends it to ollama.com.")
         }
         .onAppear {
-            self.ollamaCookie = (try? OllamaCloudCredentialStore.load())?.cookie ?? ""
+            self.ollamaAPIKey = (try? OllamaCloudCredentialStore.load())?.apiKey ?? ""
         }
     }
 

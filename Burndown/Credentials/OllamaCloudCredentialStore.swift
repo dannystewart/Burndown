@@ -2,27 +2,23 @@ import Foundation
 
 // MARK: - OllamaCloudCredentials
 
-/// The session credentials Burndown itself stores for Ollama.
-///
-/// Ollama has no quota API, so usage comes from the logged-in `ollama.com/settings` page. The user
-/// pastes that page's cookie header (`aid=...; __Secure-session=...`) into Burndown's settings, and
-/// it is only ever sent to ollama.com.
+/// The API key the user supplies for Ollama's balance endpoint, sent only to ollama.com.
 nonisolated struct OllamaCloudCredentials: Sendable {
-    let cookie: String
+    let apiKey: String
 }
 
 // MARK: - OllamaCloudCredentialStore
 
-/// Reads the pasted Ollama session cookie that Burndown stores itself.
+/// Reads the Ollama API key that Burndown stores itself.
 ///
 /// Unlike the other credential stores, there is no owning CLI here: the menu-bar app writes the
-/// cookie through the settings UI, and the launchd agent reads it when polling. The agent is the
+/// key through the settings UI, and the launchd agent reads it when polling. The agent is the
 /// same executable but launched by launchd, where the process's default defaults domain is not
 /// guaranteed to resolve to the app's bundle identifier — so both sides address an explicit suite
 /// name and land on the same predictable plist.
 nonisolated enum OllamaCloudCredentialStore {
     private static let suiteName = "com.dannystewart.Burndown.providers"
-    private static let cookieKey = "ollamaSessionCookie"
+    private static let apiKeyKey = "ollamaAPIKey"
 
     static var isConfigured: Bool {
         (try? load()) != nil
@@ -30,38 +26,29 @@ nonisolated enum OllamaCloudCredentialStore {
 
     static func load() throws(UsageError) -> OllamaCloudCredentials {
         guard
-            let cookie = UserDefaults(suiteName: suiteName)?.string(forKey: cookieKey),
-            !cookie.isEmpty else
+            let apiKey = UserDefaults(suiteName: suiteName)?.string(forKey: apiKeyKey),
+            !apiKey.isEmpty else
         {
             throw .notSignedIn
         }
-        return OllamaCloudCredentials(cookie: cookie)
+        return OllamaCloudCredentials(apiKey: apiKey)
     }
 
-    static func save(_ cookie: String) {
-        let cookie = cookie.trimmedCookie
-        guard !cookie.isEmpty else {
+    static func save(_ apiKey: String) {
+        let apiKey = apiKey.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !apiKey.isEmpty else {
             self.clear()
             return
         }
-        UserDefaults(suiteName: self.suiteName)?.set(cookie, forKey: self.cookieKey)
+        let defaults = UserDefaults(suiteName: self.suiteName)
+        defaults?.set(apiKey, forKey: self.apiKeyKey)
+        // A browser session is no longer needed once the API key has been configured.
+        defaults?.removeObject(forKey: "ollamaSessionCookie")
     }
 
     static func clear() {
-        UserDefaults(suiteName: self.suiteName)?.removeObject(forKey: self.cookieKey)
-    }
-}
-
-// MARK: - Cookie normalization
-
-private extension String {
-    /// Users paste straight from browser devtools, often including the `Cookie:` header name. Strip
-    /// it and surrounding whitespace so what is stored is the bare header value.
-    var trimmedCookie: String {
-        var value = self.trimmingCharacters(in: .whitespacesAndNewlines)
-        if value.lowercased().hasPrefix("cookie:") {
-            value = String(value.dropFirst("cookie:".count))
-        }
-        return value.trimmingCharacters(in: .whitespacesAndNewlines)
+        let defaults = UserDefaults(suiteName: self.suiteName)
+        defaults?.removeObject(forKey: self.apiKeyKey)
+        defaults?.removeObject(forKey: "ollamaSessionCookie")
     }
 }
