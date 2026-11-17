@@ -55,8 +55,8 @@ nonisolated enum UsageError: Error, Codable, Sendable, Equatable {
         switch self {
         case .notSignedIn, .credentialsExpired:
             switch provider {
-            case .claude: "Run `claude` and sign in"
-            case .codex: "Run `codex login`"
+            case .claude: "Run `claude auth login`"
+            case .codex: "Run `codex auth login`"
             case .cursor: "Sign in to Cursor and try again"
             case .opencodeGo: "Sign in at opencode.ai and try again"
             case .ollamaCloud: "Paste your API key in Burndown's Providers settings"
