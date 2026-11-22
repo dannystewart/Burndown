@@ -177,19 +177,64 @@ private struct PreferredProvidersSection: View {
     let preferences: Preferences
 
     var body: some View {
+        let providers = Provider.allCases.filter { !self.preferences.hiddenProviders.contains($0) }
         Section("Preferred Providers") {
-            PolyPickerRow("Primary", selection: Bindable(self.preferences).preferredProvider) {
-                ForEach(MenuBarProviderSelection.allCases) { selection in
-                    Text(selection.displayName).tag(selection)
-                }
-            }
+            PreferredProviderRow(
+                title: "Primary",
+                providers: providers,
+                selection: Bindable(self.preferences).preferredProvider,
+            )
 
             if self.preferences.menuBarLayout == .twoProviders {
-                PolyPickerRow("Secondary", selection: Bindable(self.preferences).preferredSecondProvider) {
-                    ForEach(MenuBarProviderSelection.allCases) { selection in
-                        Text(selection.displayName).tag(selection)
+                PreferredProviderRow(
+                    title: "Secondary",
+                    providers: providers,
+                    selection: Bindable(self.preferences).preferredSecondProvider,
+                )
+            }
+        }
+    }
+}
+
+// MARK: - PreferredProviderRow
+
+private struct PreferredProviderRow: View {
+    let title: String
+    let providers: [Provider]
+
+    @Binding var selection: MenuBarProviderSelection
+
+    var body: some View {
+        if case let .provider(provider) = self.selection, !self.providers.contains(provider) {
+            // A picker requires a matching option for its selection. Show the saved value as the
+            // menu label instead, without offering the hidden provider as a choice.
+            PolySettingsRow {
+                LabeledContent(self.title) {
+                    Menu(self.selection.displayName) {
+                        self.options { option in
+                            Button(option.displayName) { self.selection = option }
+                        }
                     }
                 }
+            }
+        } else {
+            PolyPickerRow(self.title, selection: self.$selection) {
+                self.options { option in
+                    Text(option.displayName).tag(option)
+                }
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func options(@ViewBuilder option: @escaping (MenuBarProviderSelection) -> some View) -> some View {
+        ForEach(MenuBarProviderSelection.automaticOptions, content: option)
+
+        if !self.providers.isEmpty {
+            Divider()
+
+            ForEach(self.providers) { provider in
+                option(.provider(provider))
             }
         }
     }

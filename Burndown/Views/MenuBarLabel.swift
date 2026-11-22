@@ -146,24 +146,47 @@ nonisolated struct MenuBarRow: Identifiable, Sendable {
         format: MenuBarFormat,
         selections: [MenuBarProviderSelection],
     ) -> [MenuBarRow] {
+        let now = Date.now
+        let visibleProviders = monitor.visibleProviders
+        let windows = Dictionary(uniqueKeysWithValues: visibleProviders.compactMap { provider in
+            monitor.featuredWindow(for: provider).map { (provider, $0) }
+        })
+        // Reserve pinned providers first, even when their row comes after an automatic selection.
+        var unavailableToAutomatic = Set(selections.compactMap { selection -> Provider? in
+            guard case let .provider(provider) = selection else { return nil }
+            return provider
+        })
+        let recentlyActive = selections.contains(.lastActive) ? monitor.recentlyActiveProviders : []
+        let fastestBurn = selections.contains(.fastestBurn) ? visibleProviders.compactMap { provider in
+            windows[provider].map { (provider: provider, window: $0, samples: monitor.series(for: provider, window: $0)) }
+        }
+        .sorted {
+            BurnAnalysis.soonest($0.window, samples: $0.samples, than: $1.window, samples: $1.samples, asOf: now)
+        }
+        .map(\.provider) : []
+
         var selectedProviders = Set<Provider>()
         let rows = selections.compactMap { selection -> MenuBarRow? in
             let provider: Provider? = switch selection {
             case .lastActive:
-                monitor.recentlyActiveProviders.first { !selectedProviders.contains($0) }
+                recentlyActive.first { windows[$0] != nil && !unavailableToAutomatic.contains($0) }
+            case .fastestBurn:
+                fastestBurn.first { !unavailableToAutomatic.contains($0) }
             case let .provider(preferred):
-                selectedProviders.contains(preferred) || !monitor.visibleProviders.contains(preferred) ? nil : preferred
+                preferred
             }
 
-            guard let provider else { return nil }
-            selectedProviders.insert(provider)
-            guard let window = monitor.featuredWindow(for: provider) else { return nil }
+            guard let provider, let window = windows[provider], selectedProviders.insert(provider).inserted else {
+                return nil
+            }
+            unavailableToAutomatic.insert(provider)
             return Self.row(
                 id: provider.rawValue,
                 provider: provider,
                 window: window,
                 monitor: monitor,
                 format: format,
+                now: now,
             )
         }
         return rows.isEmpty ? [Self.emptyRow] : rows
@@ -176,9 +199,9 @@ nonisolated struct MenuBarRow: Identifiable, Sendable {
         window: QuotaWindow,
         monitor: UsageMonitor,
         format: MenuBarFormat,
+        now: Date,
     ) -> MenuBarRow {
         let samples = monitor.series(for: provider, window: window)
-        let now = Date.now
         let status = BurnAnalysis(window: window, samples: samples, now: now).status
         return MenuBarRow(
             id: id,

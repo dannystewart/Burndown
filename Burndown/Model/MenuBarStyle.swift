@@ -24,15 +24,15 @@ nonisolated enum MenuBarLayout: String, CaseIterable, Identifiable, Sendable {
 /// The provider a menu bar row should follow.
 nonisolated enum MenuBarProviderSelection: RawRepresentable, Identifiable, Sendable, Hashable {
     case lastActive
+    case fastestBurn
     case provider(Provider)
 
-    static var allCases: [Self] {
-        [.lastActive] + Provider.allCases.map(provider)
-    }
+    static let automaticOptions: [Self] = [.lastActive, .fastestBurn]
 
     var rawValue: String {
         switch self {
         case .lastActive: "lastActive"
+        case .fastestBurn: "fastestBurn"
         case let .provider(provider): provider.rawValue
         }
     }
@@ -42,6 +42,7 @@ nonisolated enum MenuBarProviderSelection: RawRepresentable, Identifiable, Senda
     var displayName: String {
         switch self {
         case .lastActive: "Last Used"
+        case .fastestBurn: "Fastest Burn"
         case let .provider(provider): provider.displayName
         }
     }
@@ -49,6 +50,8 @@ nonisolated enum MenuBarProviderSelection: RawRepresentable, Identifiable, Senda
     init?(rawValue: String) {
         if rawValue == "lastActive" {
             self = .lastActive
+        } else if rawValue == "fastestBurn" {
+            self = .fastestBurn
         } else if let provider = Provider(rawValue: rawValue) {
             self = .provider(provider)
         } else {
