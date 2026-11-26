@@ -50,6 +50,12 @@
         { "path": "<PRODUCTS>/Burndown.app", "id": "000000000000000000000120", "type": "wrapper.application", "index": false },
         { "path": "<PRODUCTS>/BurndownTests.xctest", "id": "000000000000000000000121", "type": "wrapper.cfbundle", "index": false },
       ],
+    }, {
+      "kind": "group",
+      "name": "Frameworks",
+      "children": [
+        { "path": "<SDK>/System/Library/Frameworks/AppIntents.framework", "target-membership": [ "Burndown/frameworks" ] },
+      ],
     },
   ],
   "targets": [
@@ -84,10 +90,12 @@
         "ASSETCATALOG_COMPILER_APPICON_NAME": "BurndownIcon",
         "CODE_SIGN_STYLE": "Automatic",
         "CURRENT_PROJECT_VERSION": "$(CURRENT_PROJECT_VERSION)",
+        "DEBUG_INFORMATION_FORMAT": "dwarf-with-dsym",
         "ENABLE_APP_SANDBOX": "NO",
         "ENABLE_HARDENED_RUNTIME": "YES",
         "ENABLE_PREVIEWS": "YES",
         "ENABLE_USER_SELECTED_FILES": "readonly",
+        "GCC_GENERATE_DEBUGGING_SYMBOLS": "YES",
         "GENERATE_INFOPLIST_FILE": "YES",
         "INFOPLIST_KEY_CFBundleDisplayName": "Burndown",
         "INFOPLIST_KEY_LSApplicationCategoryType": "public.app-category.developer-tools",
@@ -125,6 +133,8 @@
       "build-settings": {
         "BUNDLE_LOADER": "$(TEST_HOST)",
         "CODE_SIGN_STYLE": "Automatic",
+        "DEBUG_INFORMATION_FORMAT": "dwarf-with-dsym",
+        "GCC_GENERATE_DEBUGGING_SYMBOLS": "YES",
         "GENERATE_INFOPLIST_FILE": "YES",
         "MACOSX_DEPLOYMENT_TARGET": "27.0",
         "PRODUCT_BUNDLE_IDENTIFIER": "com.dannystewart.BurndownTests",

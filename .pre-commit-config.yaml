@@ -1,6 +1,15 @@
 default_install_hook_types: [pre-commit, post-commit]
 
 repos:
+  - repo: local
+    hooks:
+      - id: swiftfinish
+        name: SwiftFinish
+        entry: Scripts/swiftfinish
+        language: system
+        types: [swift]
+        require_serial: true
+
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v6.0.0
     hooks:
@@ -24,10 +33,3 @@ repos:
         stages: [post-commit]
       - id: forbid-submodules
         stages: [post-commit]
-
-  - repo: https://github.com/nicklockwood/SwiftFormat
-    rev: 0.64.1
-    hooks:
-      - id: swiftformat
-        args: [--config, .swiftformat]
-        files: ^(Burndown/.*\.swift|\.swiftformat$|.*\.xctestplan$)
