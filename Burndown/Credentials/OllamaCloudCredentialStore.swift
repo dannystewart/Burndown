@@ -11,9 +11,9 @@ nonisolated struct OllamaCloudCredentials: Sendable {
 
 /// Reads the Ollama API key that Burndown stores itself.
 ///
-/// Unlike the other credential stores, there is no owning CLI here: the menu-bar app writes the
-/// key through the settings UI, and the launchd agent reads it when polling. The agent is the
-/// same executable but launched by launchd, where the process's default defaults domain is not
+/// Unlike the other credential stores, there is no owning CLI here: the menu-bar app writes the key
+/// through the settings UI, and the launchd agent reads it when polling. The agent is the same
+/// executable but launched by launchd, where the process's default defaults domain is not
 /// guaranteed to resolve to the app's bundle identifier — so both sides address an explicit suite
 /// name and land on the same predictable plist.
 nonisolated enum OllamaCloudCredentialStore {

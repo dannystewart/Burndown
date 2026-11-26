@@ -117,8 +117,10 @@ nonisolated struct MenuBarRow: Identifiable, Sendable {
 
     let id: String
     let symbol: String
+
     /// The format's values, top to bottom. One part fills a single line.
     let parts: [String]
+
     /// What this row would be colored if color were switched on.
     let severity: Color
     let isWarning: Bool
@@ -176,7 +178,11 @@ nonisolated struct MenuBarRow: Identifiable, Sendable {
                 preferred
             }
 
-            guard let provider, let window = windows[provider], selectedProviders.insert(provider).inserted else {
+            guard
+                let provider,
+                let window = windows[provider],
+                selectedProviders.insert(provider).inserted else
+            {
                 return nil
             }
             unavailableToAutomatic.insert(provider)

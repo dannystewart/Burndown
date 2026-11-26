@@ -2,8 +2,8 @@ import Foundation
 
 /// Reads included monthly credits or legacy quota windows from Ollama's balance API.
 ///
-/// Purchased credits have no shared monthly allowance or reset, so they must not be folded into
-/// the subscription window. See https://docs.ollama.com/api/balance.
+/// Purchased credits have no shared monthly allowance or reset, so they must not be folded into the
+/// subscription window. See https://docs.ollama.com/api/balance.
 nonisolated enum OllamaCloudUsageClient {
     private struct Response: Decodable {
         struct Included: Decodable {
